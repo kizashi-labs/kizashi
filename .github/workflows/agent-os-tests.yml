@@ -42,6 +42,7 @@ jobs:
   windows-tests:
     name: Windows platform tests
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -100,6 +101,7 @@ jobs:
   macos-tests:
     name: ${{ matrix.name }}
     runs-on: macos-latest
+    timeout-minutes: 20
     # Kept off the per-PR path purely on cost (10x multiplier x 3 variants).
     if: github.event_name != 'pull_request'
     strategy:

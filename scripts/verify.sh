@@ -16,9 +16,10 @@
 # 関係なく push 前に同じ結論を得られる。
 #
 # ── 追従の義務 ──────────────────────────────────────────────────
-# ここは .github/workflows/ の ci.yml・merge-gate.yml・security.yml を 1:1 で
-# 写したもの。**あちらのジョブやステップを足し引きしたら、ここも合わせて
-# 直すこと。** 片方だけ変わると「ローカルで緑なのに CI で落ちる」、あるいは
+# ここは .github/workflows/ の ci.yml・merge-gate.yml・security.yml・
+# workflow-lint.yml を 1:1 で写したもの。**あちらのジョブやステップを
+# 足し引きしたら、ここも合わせて直すこと。** 片方だけ変わると「ローカルで
+# 緑なのに CI で落ちる」、あるいは
 # もっと悪い「ローカルで緑だが、CI にしか無い検査を通していない」状態に
 # なる。ci.yml 側の changes ジョブにも同じ注意書きを置いてある。
 #
@@ -185,6 +186,75 @@ wants() { [[ " ${AREAS[*]} " == *" $1 "* ]]; }
 
 printf '%sCI ローカル再現%s  mode=%s  areas=%s\n' "$C_BLD" "$C_OFF" "$MODE" "${AREAS[*]}"
 printf '%s%s%s\n' "$C_DIM" "$(git log --oneline -1)" "$C_OFF"
+
+# ── workflows ────────────────────────────────────────────────────
+# workflow-lint.yml の写し。**領域に関係なく毎回走らせます** ——
+# ここが落ちるとジョブが1つも作られず、PR のチェック一覧では「失敗した CI」
+# ではなく「CI が無い」状態で並びます。**他が緑のままなので、通っているように
+# 読めます。** 速い検査なので毎回でよいものです。
+section "workflows"
+if ! have python3; then
+  skip "workflow-lint" "python3 が PATH にありません"
+elif ! python3 -c 'import yaml' 2>/dev/null; then
+  skip "workflow-lint" "PyYAML がありません（pip install pyyaml）"
+else
+  run "workflow-lint" . python3 - <<'WFLINT'
+import glob, re, sys, yaml
+
+PIPE_GREP_Q = re.compile(r"\|\s*grep\b[^|&;]*\s-[A-Za-z]*q")
+problems = []
+for path in sorted(glob.glob(".github/workflows/*.yml") +
+                   glob.glob(".github/workflows/*.yaml")):
+    try:
+        doc = yaml.safe_load(open(path, encoding="utf-8"))
+    except Exception as e:
+        problems.append("%s: YAML として読めません: %s" % (path, e)); continue
+    if not isinstance(doc, dict):
+        problems.append("%s: トップレベルがマップではありません" % path); continue
+    jobs = doc.get("jobs")
+    if not isinstance(jobs, dict) or not jobs:
+        problems.append("%s: jobs がありません" % path); continue
+    for job_name, job in jobs.items():
+        if not isinstance(job, dict):
+            problems.append("%s / %s: ジョブがマップではありません" % (path, job_name)); continue
+        if "uses" in job:
+            continue
+        # timeout-minutes が無いジョブは既定の 6 時間まで走ります。実測で
+        # 2 回起きています（360.3 分 / 111.2 分、どちらも apt の停止）。
+        if "timeout-minutes" not in job:
+            problems.append("%s / %s: timeout-minutes がありません（既定は 6 時間）"
+                            % (path, job_name))
+        elif isinstance(job["timeout-minutes"], int) and job["timeout-minutes"] > 60:
+            problems.append("%s / %s: timeout-minutes が %d 分です。**ハングを上限の引き上げで直さないでください**"
+                            % (path, job_name, job["timeout-minutes"]))
+        steps = job.get("steps")
+        if not isinstance(steps, list) or not steps:
+            problems.append("%s / %s: steps がありません" % (path, job_name)); continue
+        for i, step in enumerate(steps):
+            if not isinstance(step, dict):
+                problems.append("%s / %s / step[%d]: ステップがマップではありません"
+                                % (path, job_name, i)); continue
+            if "run" not in step and "uses" not in step:
+                problems.append("%s / %s / step[%d] (%s): run: も uses: もありません"
+                                % (path, job_name, i, step.get("name", "名前なし")))
+            script = step.get("run")
+            if isinstance(script, str) and "pipefail" in script:
+                for line in script.splitlines():
+                    if line.lstrip().startswith("#"):
+                        continue
+                    if PIPE_GREP_Q.search(line):
+                        problems.append(
+                            "%s / %s / step[%d] (%s): pipefail のもとで `grep -q` を"
+                            "パイプの右辺に置いています → %s"
+                            % (path, job_name, i, step.get("name", "名前なし"),
+                               line.strip()))
+if problems:
+    for p in problems:
+        print("  - " + p)
+    sys.exit(1)
+print("ワークフローファイルはすべて読み込み可能です")
+WFLINT
+fi
 
 # ── server ───────────────────────────────────────────────────────
 if wants server; then
