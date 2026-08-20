@@ -76,8 +76,10 @@ func TestNarrowingFromSystemToATenantIsAllowed(t *testing.T) {
 }
 
 func TestPrepareConnDoesNothingWithoutEither(t *testing.T) {
-	// 名乗りもテナントも無い ctx は、いまのところ通ります（エスケープ節が
-	// 拾います）。**抜け道を落としたあと、この接続は 0 行になります。**
+	// 名乗りもテナントも無い ctx でも、接続そのものは配ります。
+	// **止めるのは RLS の仕事です** —— agents はもう 0 行になります
+	// (migration 451)。ここで接続を拒むと、4 表に触らない仕事まで
+	// 巻き添えになります。
 	ok, err := prepareConnForTenant(context.Background(), nil)
 	if !ok || err != nil {
 		t.Fatalf("素の ctx が落ちました: ok=%v err=%v", ok, err)
@@ -103,21 +105,32 @@ func TestASystemClaimSeesEveryTenant(t *testing.T) {
 	}
 }
 
-// 名乗っていない接続が、いまは全部見えること —— **抜け道が実在する記録**。
+// 名乗っていない接続には、**何も見えない**こと（migration 451）。
 //
-// **これは「良い」ではなく「いまこうなっている」の写しです。** 抜け道を
-// 落としたら、ここは落ちます。そのとき消してください —— 落ちたことが
-// 「fail-closed になった」の合図です。
-func TestAnUnnamedConnectionStillSeesEverything(t *testing.T) {
+// 以前ここは「全部見える」を記録していました —— 抜け道が実在することの
+// 写しです。落としたので向きが逆になりました。
+//
+// **忘れたら見えない、が新しい既定です。** 落ちる向きが逆になったのが
+// 要点で、忘れた接続は漏らすのではなく止まります。片方は静かで、
+// もう片方は騒がしい。
+func TestAnUnnamedConnectionSeesNoAgents(t *testing.T) {
 	pool := rlsPool(t)
 	tenantA, tenantB := makeTenant(t, pool), makeTenant(t, pool)
 	agentA, agentB := seedAgentFor(t, pool, tenantA), seedAgentFor(t, pool, tenantB)
 
+	// **先に、行が実在することを確かめます。** 種まきが効いていないと
+	// 「0 件だから合格」になります。
+	claimed := agentsVisibleAs(t, pool, SystemTenant, agentA, agentB)
+	if !claimed[agentA] || !claimed[agentB] {
+		t.Fatal("名乗った接続からも端末が見えません。" +
+			"**種まきが効いていないので、この検査は何も測れていません**")
+	}
+
 	seen := agentsVisibleAs(t, pool, "", agentA, agentB)
-	if !seen[agentA] || !seen[agentB] {
-		t.Log("名乗っていない接続が全部は見えなくなりました。" +
-			"**エスケープ節が落ちたようです。** " +
-			"この検査と undecidedPublicRoutes を消してください")
+	if seen[agentA] || seen[agentB] {
+		t.Error("名乗っていない接続に端末が見えています。" +
+			"**migration 451 の抜け道除去が効いていません** —— " +
+			"「設定し忘れ」と「全テナントを見る権利」がまた同じ形です")
 	}
 }
 

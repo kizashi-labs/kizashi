@@ -56,8 +56,23 @@ func strictPolicy(table string) string {
 		            OR current_setting('app.tenant_id', TRUE) = 'system');`, table)
 }
 
-// permissivePolicy は migration 450 が作った、いまの形。**戻し先です。**
-func permissivePolicy(table string) string {
+// alreadyFailClosed は、**もう抜け道を持たない表**です。
+//
+// **戻し先を間違えると、migration を黙って取り消します。** agents は
+// migration 451 で抜け道を落としました。この検査の後始末が「緩い形」で
+// 戻すと、テストを走らせるたびに agents の抜け道が復活します ——
+// 走らせるほど安全でなくなる検査になります。
+//
+// 表を落とすたびに、ここに足してください。
+var alreadyFailClosed = map[string]bool{
+	"agents": true, // migration 451
+}
+
+// restorePolicy は「その表の、migration が定めるいまの形」。**戻し先です。**
+func restorePolicy(table string) string {
+	if alreadyFailClosed[table] {
+		return strictPolicy(table)
+	}
 	return fmt.Sprintf(
 		`DROP POLICY IF EXISTS %[1]s_tenant_isolation ON %[1]s;
 		 CREATE POLICY %[1]s_tenant_isolation ON %[1]s
@@ -116,7 +131,7 @@ func withStrictPolicies(t *testing.T, pool *pgxpool.Pool) {
 
 	t.Cleanup(func() {
 		for _, table := range failClosedTables {
-			if _, err := pool.Exec(context.Background(), permissivePolicy(table)); err != nil {
+			if _, err := pool.Exec(context.Background(), restorePolicy(table)); err != nil {
 				// **ここが落ちたら、後続の検査がまとめて壊れます。**
 				t.Errorf("%s の方針を戻せませんでした。**このデータベースは"+
 					"厳格版のまま残っています**: %v", table, err)

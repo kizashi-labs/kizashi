@@ -1,0 +1,66 @@
+-- agents の RLS から「テナント未設定なら全テナント可」を外す
+--
+-- 4 表 (agents / alerts / incidents / users) のうち、**agents だけ**を
+-- 先に落とします。残る 3 表の抜け道はそのままです。
+--
+-- ## なぜ 1 表ずつか
+--
+-- 抜け道を落とすと、`app.tenant_id` を張らずに繋いだ接続は **0 行**に
+-- なります。**壊れる向きが「静かに 0 行」です** —— 検知が止まっても、
+-- 隔離が空振りしても、例外は出ず、画面は正常に見えます。
+--
+-- 4 表を一度に落とすと、壊れたときにどこが原因か切り分けられません。
+-- agents を先にするのは、**検知パイプラインが最も強く依存する表**だから
+-- です。壊れるならいちばん早く、いちばん大きく出ます。
+--
+-- ## 下ごしらえは済んでいます
+--
+--   migration 450        方針に「名乗り」の項 (`= 'system'`) を足した
+--   store.WithSystemAccess  背景ワーカ 33 本と認証前経路 16 件が名乗る
+--   store.WithTenant     要求から離れる仕事がテナントを持っていく
+--   tenantMiddleware     authProtected にも張った（users の 9 経路）
+--
+-- 台帳 2 本が「テナントも名乗りも無いまま 4 表に届く経路」を留めます:
+--
+--   internal/api/system_access_ledger_test.go       router.go の経路
+--   internal/api/handlers/background_tenant_ledger_test.go  go func() の ctx
+--
+-- ## 落とした世界は、落とす前に測ってあります
+--
+-- `internal/store/two_tenant_failclosed_test.go` が、方針を**この
+-- migration と同じ形**に差し替えて 2 テナントで実測します:
+--
+--   テナント A / B      自分の行だけ（両方向）
+--   名乗り (system)     両方見える
+--   素の ctx            0 行
+--   素の ctx で書き込み  RLS が拒む
+--   接続の使い回し       前のテナントが残らない
+--
+-- そのうえで木全体を走らせ、**落ちたのは台帳 2 件だけ**でした
+-- （「抜け道を持たなくなりました」と「テナント未設定で 0 件」）。
+-- 本番の経路は 1 つも落ちていません。
+--
+-- ## 戻し方
+--
+-- 系が止まったら、この 1 文で戻せます:
+--
+--   DROP POLICY IF EXISTS agents_tenant_isolation ON agents;
+--   CREATE POLICY agents_tenant_isolation ON agents
+--       USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
+--              OR current_setting('app.tenant_id', TRUE) = 'system'
+--              OR current_setting('app.tenant_id', TRUE) IS NULL
+--              OR current_setting('app.tenant_id', TRUE) = '');
+--
+-- **戻したら permissiveWhenUnset に agents を書き戻してください。**
+-- 書き戻さないと契約テストが「抜け道を持たなくなりました」で落ちます ——
+-- それは正しい反応です。
+--
+-- WITH CHECK は書きません。**書かないと USING がそのまま WITH CHECK に
+-- なります**（PostgreSQL の既定）ので、INSERT / UPDATE も同じ条件で
+-- 絞られます。書き込みだけ別に足すと、2 つの条件がずれたときに
+-- 読めない行が書けます（migration 446 / 450 と同じ判断）。
+
+DROP POLICY IF EXISTS agents_tenant_isolation ON agents;
+CREATE POLICY agents_tenant_isolation ON agents
+    USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
+           OR current_setting('app.tenant_id', TRUE) = 'system');
