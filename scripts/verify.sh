@@ -256,7 +256,7 @@ for path in sorted(glob.glob(".github/workflows/*.yml") +
 # 本流へ渡す一覧の数が実物と合っていること。**この数は一度腐りました** ——
 # 引き継ぎに「47 件」と書いたあと sync-guard.yml が 2 件足し、メモだけが
 # 残りました。渡された側は古い数を写して、その差だけ黙って落とします。
-HANDOVER = "docs/ci/同期の受け側ガードと本流への反映.md"
+HANDOVER = "docs/ci/本流へ渡す作業一覧.md"
 try:
     handover = open(HANDOVER, encoding="utf-8").read()
 except FileNotFoundError:
