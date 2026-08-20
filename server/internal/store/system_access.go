@@ -72,3 +72,30 @@ func systemAccessFromContext(ctx context.Context) bool {
 	on, _ := ctx.Value(systemAccessKey{}).(bool)
 	return on
 }
+
+// WithTenant carries a tenant into a context that does not inherit one.
+//
+// **要求から離れる仕事のためにあります。** ハンドラが `go func()` で
+// 続きを走らせるとき、`context.Background()` から新しい ctx を作ります
+// —— 要求の ctx は応答を返した時点で切れるからです。**そこでテナントが
+// 落ちます。**
+//
+// 落ちた ctx は `app.tenant_id` を張らないので、いまは RLS のエスケープ節
+// が拾って**全テナントを見せます**。つまり:
+//
+//	テナント A が頼んだレポートに、B のアラートが入ります
+//	テナント A が始めた資産探索が、B の端末を数えます
+//
+// **これは fail-closed 化を待たずに直すべき漏れです。** 抜け道を落とせば
+// 0 行になって止まりますが、それは「止まる」であって「正しくなる」では
+// ありません。要求のテナントを持っていくのが正しい形です。
+//
+// 全テナントが要る背景の仕事（検知・相関・保持削除）は
+// `WithSystemAccess` です。**こちらは要求から生えた仕事のためのもの**で、
+// 使い分けを間違えると、片方は漏れ、もう片方は止まります。
+func WithTenant(ctx context.Context, tenantID string) context.Context {
+	if tenantID == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, TenantContextKey{}, tenantID)
+}

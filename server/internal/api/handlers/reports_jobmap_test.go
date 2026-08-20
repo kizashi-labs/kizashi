@@ -202,7 +202,7 @@ func TestReportHandler_UnknownType_NoStoreNoPanic(t *testing.T) {
 			t.Errorf("generateReport がパニックしました: %v", r)
 		}
 	}()
-	h.generateReport("dummy-job", "unknown_type", from, to)
+	h.generateReport("", "dummy-job", "unknown_type", from, to)
 }
 
 func TestReportHandler_AgentStatus_NoStoreReturnsMessage(t *testing.T) {
@@ -217,5 +217,5 @@ func TestReportHandler_AgentStatus_NoStoreReturnsMessage(t *testing.T) {
 			t.Errorf("generateReport (agent_status) がパニックしました: %v", r)
 		}
 	}()
-	h.generateReport("dummy-job-2", "agent_status", from, to)
+	h.generateReport("", "dummy-job-2", "agent_status", from, to)
 }

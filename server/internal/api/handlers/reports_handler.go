@@ -88,7 +88,12 @@ func (h *ReportHandler) Generate(c *gin.Context) {
 		}
 	}
 
-	go h.generateReport(jobID, req.Type, from, to)
+	// **要求のテナントを持っていきます。** generateReport は
+	// `context.Background()` から ctx を作るので（呼び出し側はもう 202 を
+	// 返しています）、何もしないとテナントが落ちます。落ちた接続は RLS の
+	// エスケープ節に拾われて**全テナントのアラートと端末**を集計します ——
+	// テナント A が頼んだレポートに B のアラートが入ります。
+	go h.generateReport(store.TenantFromContext(c.Request.Context()), jobID, req.Type, from, to)
 
 	c.JSON(http.StatusAccepted, gin.H{
 		"id":           jobID,
@@ -99,8 +104,9 @@ func (h *ReportHandler) Generate(c *gin.Context) {
 	})
 }
 
-func (h *ReportHandler) generateReport(jobID, reportType string, from, to time.Time) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+func (h *ReportHandler) generateReport(tenantID, jobID, reportType string, from, to time.Time) {
+	ctx, cancel := context.WithTimeout(
+		store.WithTenant(context.Background(), tenantID), 30*time.Second)
 	defer cancel()
 
 	// **この goroutine の3つの書き込みが、ジョブの状態のすべてです。**
