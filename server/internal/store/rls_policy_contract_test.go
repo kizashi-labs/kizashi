@@ -68,9 +68,8 @@ var rlsTables = map[string]string{
 // permissiveWhenUnset は「app.tenant_id が未設定なら全行」の抜け道を持つ
 // テーブルです。**空にできていないのは事実なので、数ではなく名前で残します。**
 //
-// **agents (451) / alerts (453) / incidents (454) は落としました。**
-// 残る users を落とすときも、
-// 同じ手順を踏んでください:
+// **4 表とも落とし終わりました** (451 / 453 / 454 / 455)。
+// 新しく抜け道を持つ表が増えたときは、同じ手順を踏んでください:
 //
 //  1. `two_tenant_failclosed_test.go` の演習で、落とした世界を先に測る
 //  2. 木全体を `-count=1` で走らせる（**結果キャッシュに注意** ——
@@ -79,22 +78,33 @@ var rlsTables = map[string]string{
 //  4. `alreadyFailClosed` にその表を足す —— **足し忘れると、演習の
 //     後始末が抜け道を復活させます**
 //
-// 落ちたのは agents で台帳 2 件、alerts と incidents で 1 件ずつでした。
+// 落ちたのは agents で台帳 2 件、alerts と incidents で 1 件ずつ、
+// users で 1 件でした。
+//
+// **users だけは、落とす前に配線が 1 か所足りませんでした。**
+// `authMiddleware` の中の 2 本（`FindByKey` と `UserCache.IsActive`）が
+// テナントも名乗りも持たないまま users に届いていました。木を走らせても
+// 出ません —— 検査の接続主体がスーパーユーザで、RLS を素通りするからです。
+// `users_failclosed_auth_test.go` が `SET ROLE edr_app` の側で測ります。
 //
 // **読みだけ確かめて落とさないでください。** alerts のとき、名乗った接続が
 // そもそも書けなくなっていた（`'system'::uuid` が不正）ことが分かりました
 // —— #77 で入れた回帰で、migration 452 で直しました。読みの検査だけでは
 // 出ません。`system_claim_insert_test.go` が書きの側を持ちます。
 var permissiveWhenUnset = map[string]string{
-	// agents (451) / alerts (453) / incidents (454) は **もう抜け道を
-	// 持ちません**。取り込み・検知・相関はすべて
-	// `store.WithSystemAccess` で名乗るようになったので、テナント無しで
-	// 繋ぐ経路はありません。**残るのは users だけです。**
+	// **4 表とも落ちました** —— agents (451) / alerts (453) /
+	// incidents (454) / users (455)。ここに 4 表の名前はもうありません。
 	//
-	// users だけ形が違います —— **認証はテナントを決める前に利用者を
-	// 引きます**（鶏と卵）。ログインは公開経路で `sysAccess` を張って
-	// ありますが、そこが本当に全部かは単独で見る必要があります。
-	"users": "認証がテナントを決める前に利用者を引きます（鶏と卵）",
+	// **空になったからといって、この一覧を消さないでください。** 消すと、
+	// 抜け道を持つ表が新しく増えたときに書く場所が無くなります。
+	// `TestRLSPoliciesMatchWhatWeRecorded` は両方向に落ちます ——
+	// 一覧に無い表が抜け道を持っていても、一覧に在る表が持たなくなっても。
+	//
+	// users がいちばん形が違いました。**認証はテナントを決める前に利用者を
+	// 引きます**（鶏と卵）。公開の 5 経路は #79 で `sysAccess` を張って
+	// ありましたが、`authMiddleware` の内側にあと 2 本残っていました
+	// （`FindByKey` と `UserCache.IsActive`）。詳しくは migration 455 に
+	// 書いてあります。
 
 	// uninstall_guards / uninstall_attempts は **もう抜け道を持ちません**
 	// (migration 446)。379 は agents / alerts と同じ形で作りましたが、

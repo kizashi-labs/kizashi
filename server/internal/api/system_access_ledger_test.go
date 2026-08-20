@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -37,14 +38,17 @@ import (
 // **名乗りは最後の手段です。** 張れるなら張ってください —— 名乗れる
 // 場所が増えるほど、名乗りは既定に戻ります。
 //
-// ## いまエスケープ節を落とせるか
+// ## いまエスケープ節を落とせるか —— 落とし終わりました
 //
-// 落とせません。単一テナント配備の JWT は `tenant_id` を持たないので、
-// `tenantMiddleware` を足しても `app.tenant_id` は空のままです
-// （`protected` も同じ状態です）。**そこを塞ぐには、テナントが無いときに
-// 既定テナントへ落とす必要があり、それは挙動の変更です**
-// —— migration 446 が uninstall_protection の 2 表でやったのと同じ手当てを、
-// 4 表ぶん行うことになります。
+// ここには以前「落とせない。単一テナント配備の JWT は `tenant_id` を
+// 持たないから」と書いてありました。**それは誤りでした。** 数え直したら、
+// JWT を発行する 4 か所すべてが既に既定テナントを入れていました。
+// 誤った前提のまま、この一覧は「まだ塞げない」という結論を支えていました。
+//
+// 4 表とも抜け道は落ちています（migration 451 / 453 / 454 / 455）。
+// **この台帳は「落とすまでの作業一覧」ではなく、落ちた状態を保つための
+// 台帳になりました。** 名乗り無しで 4 表に届く経路を新しく足すと、
+// それは机上の心配ではなく、その場で 0 行になります。
 
 // systemAccessRoutes は `sysAccess` を張った場所と、その理由です。
 var systemAccessRoutes = map[string]string{
@@ -418,15 +422,67 @@ func TestNoEntryIsInTwoLedgers(t *testing.T) {
 	}
 }
 
-// **エスケープ節を落とせる条件を、ここに書いておきます。**
+// **`authMiddleware` は台帳の外にあります。** ここだけ別に留めます。
 //
-// 落とせる状態になったら、この検査が教えます。いまは落とせません ——
-// 単一テナント配備の JWT は tenant_id を持たないので、
-// `tenantMiddleware` を張っても `app.tenant_id` は空のままです。
-func TestWhatStillBlocksDroppingTheEscapeClause(t *testing.T) {
-	t.Log("残っているのは 1 つです: **単一テナント配備の JWT が tenant_id を" +
-		"持たない**ため、tenantMiddleware を張っても app.tenant_id は空です。" +
-		"塞ぐには、テナントが無いときに既定テナントへ落とす必要があります" +
-		"（migration 446 が uninstall_protection の 2 表でやったのと同じ手当てを" +
-		"4 表ぶん）。**それは挙動の変更なので、別に測ってから行ってください。**")
+// 上の台帳は「経路に何を張ったか」を数えます。`authMiddleware` は経路では
+// なく、**すべての認証済み経路の内側**で users に 2 回届きます:
+//
+//	FindByKey           `LEFT JOIN users` で API キーの持ち主のテナントを引く
+//	UserCache.IsActive  `SELECT is_active FROM users WHERE id = $1`
+//
+// どちらもテナントが決まる前です（誰なのかを users に聞くまで、テナントは
+// 決まりません）。migration 455 で users の抜け道が落ちたので、**この 2 本が
+// 名乗らなくなった瞬間に、認証が全部壊れます** —— `IsActive` は行が無いのを
+// 「削除された利用者」と読むので全員が締め出され、`FindByKey` のほうは
+// 鍵が引けたまま**テナントだけが静かに落ちます**。
+//
+// 壊れ方は `internal/store/users_failclosed_auth_test.go` が実 DB で見せて
+// います。ここが留めるのは配線のほうです。
+//
+// **`authCtx` が要求の ctx に戻っていないことも見ます。** 戻すと、この先の
+// ハンドラが全部全テナントで走ります —— 名乗りが 2 本の道具ではなく、
+// 既定になります。
+func TestAuthMiddlewareClaimsOnlyForTheTwoUserLookups(t *testing.T) {
+	src := funcBody(t, "authMiddleware")
+
+	for _, want := range []string{
+		"store.WithSystemAccess(c.Request.Context())",
+		"FindByKey(authCtx,",
+		"IsActive(authCtx,",
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("authMiddleware に %q がありません。\n"+
+				"    users は migration 455 で抜け道を持ちません。テナントが決まる\n"+
+				"    前の users 参照は名乗りが要ります。**外すと認証が全部落ちます。**", want)
+		}
+	}
+
+	if strings.Contains(src, "c.Request = c.Request.WithContext") {
+		t.Error("authMiddleware が名乗りを要求の ctx に書き戻しています。\n" +
+			"    **この先のハンドラが全部全テナントで走ります。**\n" +
+			"    名乗るのは users を引く 2 本だけにしてください。")
+	}
+}
+
+// funcBody は router.go の関数 1 本を、そのままの文字列で返します。
+func funcBody(t *testing.T, name string) string {
+	t.Helper()
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "router.go", nil, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("router.go を読めません: %v", err)
+	}
+	raw, err := os.ReadFile("router.go")
+	if err != nil {
+		t.Fatalf("router.go を開けません: %v", err)
+	}
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Body == nil || fn.Name.Name != name {
+			continue
+		}
+		return string(raw[fset.Position(fn.Body.Pos()).Offset:fset.Position(fn.Body.End()).Offset])
+	}
+	t.Fatalf("router.go に %s がありません。**この検査は何も見ていません**", name)
+	return ""
 }
