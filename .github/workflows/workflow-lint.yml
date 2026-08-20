@@ -144,7 +144,7 @@ jobs:
           # **落ちるのは、いちばん新しく足した検査です。**
           #
           # 文書の数は、書いた瞬間だけ正しい。ここで留めます。
-          HANDOVER = "docs/ci/同期の受け側ガードと本流への反映.md"
+          HANDOVER = "docs/ci/本流へ渡す作業一覧.md"
           try:
               handover = open(HANDOVER, encoding="utf-8").read()
           except FileNotFoundError:
