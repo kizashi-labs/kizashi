@@ -56,11 +56,16 @@ var rlsTables = map[string]string{
 // テーブルです。**空にできていないのは事実なので、数ではなく名前で残します。**
 //
 // **落とす下ごしらえは入りました**（migration 450）。全テナント権が要る
-// 経路は `store.WithSystemAccess` で名乗るようになり、方針にも
-// `= 'system'` の項があります。落とせないのは、公開経路のうち 6 件が
-// **4 表に触るかどうか未判定**だからです —— 落とすと、触っていた場合に
-// 0 行で静かに壊れます。一覧は internal/api/system_access_ledger_test.go の
-// `undecidedPublicRoutes` にあります。**それが空になったら落とせます。**
+// 経路は `store.WithSystemAccess` で名乗り、テナントを張れる経路には
+// `tenantMiddleware` を足し、4 表に届かない経路は確かめて名前で残して
+// あります（internal/api/system_access_ledger_test.go）。
+//
+// **残っているのは 1 つだけです。** 単一テナント配備の JWT は
+// `tenant_id` を持たないので、`tenantMiddleware` を張っても
+// `app.tenant_id` は空のままです。塞ぐには、テナントが無いときに既定
+// テナントへ落とす必要があり、**それは挙動の変更です** —— migration 446
+// が uninstall_protection の 2 表でやったのと同じ手当てを 4 表ぶん
+// 行うことになります。
 var permissiveWhenUnset = map[string]string{
 	"agents":    "取り込みと対応系がテナント無しで繋ぎます",
 	"alerts":    "検知エンジンとアラートパイプラインがテナント無しで繋ぎます",
