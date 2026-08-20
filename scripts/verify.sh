@@ -17,7 +17,7 @@
 #
 # ── 追従の義務 ──────────────────────────────────────────────────
 # ここは .github/workflows/ の ci.yml・merge-gate.yml・security.yml・
-# workflow-lint.yml を 1:1 で写したもの。**あちらのジョブやステップを
+# workflow-lint.yml・sync-guard.yml を 1:1 で写したもの。**あちらのジョブやステップを
 # 足し引きしたら、ここも合わせて直すこと。** 片方だけ変わると「ローカルで
 # 緑なのに CI で落ちる」、あるいは
 # もっと悪い「ローカルで緑だが、CI にしか無い検査を通していない」状態に
@@ -254,6 +254,23 @@ if problems:
     sys.exit(1)
 print("ワークフローファイルはすべて読み込み可能です")
 WFLINT
+fi
+
+# ── 同期の取りこぼし ─────────────────────────────────────────────
+# **消えても CI が緑のままになるもの**を名前で留めます。#67 で入れた
+# timeout-minutes 47 件は #70 の同期が全部消し、**同時に欠落を落とす検査
+# そのものも消した**ので、PR は 22/22 緑で通りました（#73 で戻した）。
+#
+# CI では `.github/workflows/sync-guard.yml` が `pull_request_target` で
+# 走ります —— **base 側の定義で走るので、PR がこれを消しても止まりません。**
+# ここは同じ判定を作業木に当てるだけの写しです。
+if ! have python3; then
+  skip "sync-guard" "python3 が PATH にありません"
+elif ! python3 -c 'import yaml' 2>/dev/null; then
+  skip "sync-guard" "PyYAML がありません（pip install pyyaml）"
+else
+  run "sync-guard" . python3 scripts/sync_guard.py .
+  run "sync-guard 自身" . python3 scripts/sync_guard_test.py
 fi
 
 # ── ラチェット再較正の道具 ───────────────────────────────────────
