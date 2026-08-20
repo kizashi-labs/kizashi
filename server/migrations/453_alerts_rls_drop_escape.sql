@@ -1,0 +1,51 @@
+-- alerts の RLS から「テナント未設定なら全テナント可」を外す
+--
+-- 4 表のうち **2 表目**です（1 表目は agents / migration 451）。
+-- 残る 2 表 (incidents / users) の抜け道はそのままです。
+--
+-- ## この表は書き込みが多い
+--
+-- agents と違い、alerts は**系が絶えず書き込む表**です。検知エンジン、
+-- 取り込み、相関、各種 detector が名乗った接続で INSERT します。
+--
+-- そこに直前まで穴がありました（migration 452）。`tenant_id` 列の DEFAULT が
+-- `current_setting('app.tenant_id')::uuid` を読むので、名乗り (`'system'`) を
+-- uuid に変換しようとして INSERT ごと落ちていました。**抜け道を落とす前に
+-- 直しておく必要があった**もので、452 で直してあります。
+--
+-- 落とす順序として alerts を 2 番目にしたのは、agents で「読み」の側が
+-- 通ることを確かめたあと、**「書き」の側がいちばん重い表**で確かめるためです。
+--
+-- ## 確かめたこと
+--
+-- 木全体を `-count=1` で走らせて、落ちたのは台帳 1 件だけでした
+-- （「alerts は抜け道を持たなくなりました」）。本番の経路は 1 つも
+-- 落ちていません。
+--
+-- **`go test` の結果キャッシュに注意してください。** DB の状態は
+-- `go test` の入力に入らないので、方針を変えても前の成功が再利用されます。
+-- agents のときにこれで一度騙されました。
+--
+-- そのうえで、名乗った接続が alerts に**書ける**ことを
+-- `system_claim_insert_test.go` が見ています。読みだけ確かめて落とすと、
+-- 系が書けなくなったことに気づけません。
+--
+-- ## 戻し方
+--
+--   DROP POLICY IF EXISTS alerts_tenant_isolation ON alerts;
+--   CREATE POLICY alerts_tenant_isolation ON alerts
+--       USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
+--              OR current_setting('app.tenant_id', TRUE) = 'system'
+--              OR current_setting('app.tenant_id', TRUE) IS NULL
+--              OR current_setting('app.tenant_id', TRUE) = '');
+--
+-- **戻したら permissiveWhenUnset に alerts を書き戻し、
+-- two_tenant_failclosed_test.go の alreadyFailClosed からも外してください。**
+-- 外し忘れると、演習の後始末が抜け道を「戻さない」ままになります。
+--
+-- WITH CHECK は書きません（USING がそのまま WITH CHECK になります）。
+
+DROP POLICY IF EXISTS alerts_tenant_isolation ON alerts;
+CREATE POLICY alerts_tenant_isolation ON alerts
+    USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
+           OR current_setting('app.tenant_id', TRUE) = 'system');
