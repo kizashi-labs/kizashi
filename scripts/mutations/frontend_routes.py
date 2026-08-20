@@ -194,7 +194,7 @@ CASES = [
      'ルートの無い読み取りの上限を上げる'),
     (SRO, 'const UNROUTED_READ_CEILING = 133', 'const UNROUTED_READ_CEILING = 50',
      '上限が実測を下回っても言わなくなる、の逆確認（読み取り）'),
-    (SRO, 'const UNROUTED_WRITE_CEILING = 163', 'const UNROUTED_WRITE_CEILING = 400',
+    (SRO, 'const UNROUTED_WRITE_CEILING = 162', 'const UNROUTED_WRITE_CEILING = 400',
      'ルートの無い書き込みの上限を上げる'),
 
     # ── 走査の広さ（狭めると件数は「下がる」）──────────────────────────

@@ -143,7 +143,7 @@ CASES = [
     (BF, '\tcase catStartup, catPerReq, catPerEvent, catReturns, catMechanism, catUntracked:',
          '\tcase catStartup, catPerReq, catPerEvent, catReturns, catMechanism, catUntracked, "":',
      '空の分類を通す（**分類しなくても緑になります**）'),
-    (BF, '\tbackgroundFailedCount = 69', '\tbackgroundFailedCount = 100',
+    (BF, '\tbackgroundFailedCount = 68', '\tbackgroundFailedCount = 100',
      '件数を留めなくなる'),
     (BF, '\tcatUntracked: 0,', '\tcatUntracked: 5,',
      '`未追跡` の 0 を留めなくなる（**包んでいない周期処理があっても'
