@@ -266,6 +266,38 @@ GUARD_ALLOWED_RUNS = {
     ' --header "Accept: application/vnd.github+json"'
     ' "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/tarball/$HEAD_SHA"'
     ' --output head.tar.gz',
+
+    # ── 移行中。**上の形は次の PR で消します** ────────────────────
+    #
+    # `workflow_dispatch` では `github.event.pull_request.head.sha` が空に
+    # なり、ref の無い tarball は既定ブランチを返します —— この検査が
+    # main を見て「配布物はすべて残っています」と緑を返す、いちばん質の
+    # 悪い形です。空 SHA を弾く枝を足して塞ぎます。
+    #
+    # **ガード自身の `run:` は 1 つの PR では変えられません。** この検査は
+    # base（main）の版で走るので、main の一覧に無い形は「許していない
+    # run:」で落ちます。**それは正しい挙動です** —— この workflow は base
+    # の権限で走るので、書き換えが黙って入るほうが危ない。
+    #
+    # なので 2 段で入れます:
+    #
+    #	1. （この PR）新しい形を**先に**一覧へ足す。workflow は触らない
+    #	2. （次の PR）workflow を新しい形にし、**古い形を一覧から消す**
+    #
+    # **2 を必ず行ってください。** 両方許したままだと、空 SHA を弾く枝を
+    # 消しても落ちません —— 塞いだはずの穴が、静かに開いたままになります。
+    'if [ -z "$HEAD_SHA" ]; then'
+    ' echo "HEAD_SHA が空です。**workflow_dispatch では PR の木を取れません。**"'
+    ' echo "ref の無い tarball は既定ブランチを返すので、この検査は main を見て"'
+    ' echo "「配布物はすべて残っています」と緑を返します —— **それは嘘です。**"'
+    ' echo "PR で確かめたいなら、その PR を閉じて開き直してください（reopened で走ります）。"'
+    ' exit 1'
+    ' fi'
+    ' curl --fail --silent --show-error --location'
+    ' --header "Authorization: Bearer $GH_TOKEN"'
+    ' --header "Accept: application/vnd.github+json"'
+    ' "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/tarball/$HEAD_SHA"'
+    ' --output head.tar.gz',
 }
 
 # ── 8. agent-ebpf の mkdir ────────────────────────────────────────
