@@ -564,15 +564,6 @@ var returnExceptions = map[string]string{
 		"一致しなかった」。読めなかったときも一致なしに倒れますが、行き先は" +
 		"人による振り分けです。誤って誰かに割り当てるより安全な方向で、" +
 		"アラート自体は消えません",
-	"suppression/engine.go:conditionMatches": "(c) 壊れた正規表現は「一致しない」。" +
-		"抑制条件なので、一致しなければアラートは出ます。" +
-		"逆に倒すと、書き損じた正規表現1本でアラートが消えます",
-	"detection/engine.go:ptraceModeIsAttach": "(c) 解釈できない ptrace 引数は " +
-		"true（＝抑制しない）。コメントに fail-open と明記されています。" +
-		"逆に倒すと、読めなかった引数の分だけ検知が黙ります",
-	"notification/webhook.go:classifyAttempt": "(c) 送信時のエラーは " +
-		"outcomeRetryable。相手が答えなかったので、答えを知らない。" +
-		"再送するのが正しい扱いです",
 
 	// ── 意図して値で答えるもの（背景ワーカーの整理後に残った9件）──
 	"api/handlers/websocket_handler.go:Handle": "(a) upgrader.Upgrade は" +
@@ -649,6 +640,12 @@ var returnExceptions = map[string]string{
 	"ws/subscription.go:ParseSubscribeMessage": "(c) 購読メッセージとして" +
 		"読めないものは (nil, false)。WebSocket の相手が送ってくる文字列なので、" +
 		"読めないことは日常的に起こります",
+	"detection/engine.go:ptraceModeIsAttach": "(c) 解釈できない ptrace 引数は " +
+		"true（＝抑制しない）。コメントに fail-open と明記されています。" +
+		"逆に倒すと、読めなかった引数の分だけ検知が黙ります",
+	"notification/webhook.go:classifyAttempt": "(c) 送信時のエラーは " +
+		"outcomeRetryable。相手が答えなかったので、答えを知らない。" +
+		"再送するのが正しい扱いです",
 }
 
 // TestNoReturnExceptionHasGoneStale checks the other direction of the list.
@@ -1401,7 +1398,7 @@ func TestSegmentationAnswersWithAllItsPoliciesOrWithNone(t *testing.T) {
 // 何件に理由を書いたのかが見えないと、その差が隠れます。
 func TestReturnExceptionCountIsPinned(t *testing.T) {
 	// 実測 (2026-08-12)。**増やすときは、ここも動かしてください。**
-	const want = 36
+	const want = 35
 	if got := len(returnExceptions); got != want {
 		t.Errorf("理由つきで外した return が %d 件です（%d のはず）。"+
 			"増やしたなら定数を %d に。減らしたなら下げてください ——"+

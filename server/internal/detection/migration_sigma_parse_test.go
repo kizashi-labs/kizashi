@@ -129,64 +129,19 @@ func migrationSigmaBlocks(t *testing.T) map[string]sigmaBlock {
 	return out
 }
 
-func TestMigrationSigmaRulesParseInProductionEvaluator(t *testing.T) {
-	blocks := migrationSigmaBlocks(t)
-	if len(blocks) < 100 {
-		t.Fatalf("only %d Sigma blocks extracted from migrations — the extractor is broken "+
-			"and this test would pass vacuously", len(blocks))
-	}
-
-	keys := make([]string, 0, len(blocks))
-	for k := range blocks {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		blk := blocks[k]
-		if err := NewSigmaEvaluator().LoadRule(blk.body); err != nil {
-			t.Errorf("%s (%s) does not parse in the api-server evaluator: %v\n"+
-				"  server-detect's sigma-go may still accept it, which is worse than a clean "+
-				"failure: the rule is absent from one engine and silently altered in the other "+
-				"(duplicate YAML keys take the LAST value, dropping the first condition)",
-				k, blk.file, err)
-		}
-	}
-}
-
-// The extractor's own blind spot, made loud.
+// **この下にあった 2 本は外しました**（#74 の同期）。
 //
-// `$SIGMA$`-tagged dollar quoting is used by exactly one migration today, and
-// the previous `\$\$(.*?)\$\$` extractor skipped it entirely — so 014's rules
-// were exempt from the parse gate above without anything saying so. The count
-// guard did not help: 100+ rules still came through the untagged files.
+//	TestMigrationSigmaRulesParseInProductionEvaluator
+//	TestMigrationSigmaExtractorReadsTaggedDollarQuotes
 //
-// Naming the tagged form here means a future rewrite of dollarQuotedBodies that
-// loses it fails, instead of quietly shrinking the gate's reach again.
-func TestMigrationSigmaExtractorReadsTaggedDollarQuotes(t *testing.T) {
-	blocks := migrationSigmaBlocks(t)
-	// From migration 014, which is $SIGMA$-quoted throughout.
-	for _, title := range []string{
-		"WMI Remote Command Execution",
-		"Lateral Movement via RDP",
-	} {
-		blk, ok := blocks[title]
-		if !ok {
-			t.Errorf("%q was not extracted — dollarQuotedBodies has stopped reading $tag$-quoted "+
-				"strings, so migration 014's rules are silently exempt from the parse gate", title)
-			continue
-		}
-		if blk.file != "014_lateral_movement_rules.sql" {
-			t.Errorf("%q came from %s, expected 014_lateral_movement_rules.sql", title, blk.file)
-		}
-	}
-}
+// どちらも「検知ルールが migration の中にある」前提でした。上流の
+// ルールのパック化で 92 本のルール migration が消え、前提が無くなりました
+// （前者は「20 ブロックしか取れない。空振りで緑になる」と自分で言います）。
+//
+// **上の関数は残します。** linux_builtins / scp_exfil / shutdown_reboot /
+// windows_vm_discovery の 4 つがまだ使っていて、そちらは通ります。
+// 定義だけ消すとビルドが落ちます —— 上流が実際にそうしていました。
 
-// The four rules migration 371 repaired. Asserting on the repaired shape keeps a
-// future edit from reintroducing the duplicate key — the parse gate above would
-// catch that too, but this names the specific rules and what they must require,
-// so a regression reads as "the tar binary check is gone" rather than as a YAML
-// error.
 func TestMigration371RulesRequireTheirDiscriminatingToken(t *testing.T) {
 	blocks := migrationSigmaBlocks(t)
 
