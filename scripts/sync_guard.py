@@ -143,6 +143,26 @@ SELF = [
     '.github/workflows/sync-guard.yml',
 ]
 
+# ── 7. この検査が PR のコードを実行しないこと ─────────────────────
+# `pull_request_target` は base の権限で走ります。**PR のコードを1行でも
+# 実行したら、そのまま乗っ取られます。** Semgrep の
+# `pull-request-target-code-checkout` はこの形（head を checkout する
+# pull_request_target）を必ず指摘し、指摘の本文は「実行していないことを
+# 監査してください」と言います。
+#
+# **監査は約束です。約束は腐ります。** 半年後に誰かが `npm ci` を足した
+# ときに気づく仕組みが無いと、抑止コメントは「昔は安全でした」の記録に
+# なります。だから約束を検査にします —— `run:` を**そのままの文字列で**
+# 並べ、1文字でも変わったら落とします。増やすときは、ここを直す手が
+# 必ず要る＝そこが読み直す機会になります。
+GUARD_WORKFLOW = '.github/workflows/sync-guard.yml'
+GUARD_ALLOWED_RUNS = {
+    'pip install pyyaml',
+    'python3 scripts/sync_guard_test.py',
+    'python3 scripts/sync_guard.py head',
+}
+GUARD_HEAD_PATH = 'head'
+
 # ── 6. agent-ebpf の mkdir ────────────────────────────────────────
 # downloads/ は .gitignore に入っているので、クローン直後には存在しません。
 # 再試行の間に挟まる `git reset --hard` が消すので、**ループの中**に
@@ -308,6 +328,72 @@ def ebpf_mkdir(root: str) -> list[str]:
     return [f'{EBPF}: 「{EBPF_STEP}」の step がありません']
 
 
+def guard_is_inert(root: str) -> list[str]:
+    """この検査自身が、PR のコードを実行しうる形になっていないこと。"""
+    src = read(root, GUARD_WORKFLOW)
+    if src is None:
+        return []  # 消えたことは SELF が報告します
+    try:
+        doc = yaml.safe_load(src)
+    except yaml.YAMLError as e:
+        return [f'{GUARD_WORKFLOW}: YAML として読めません: {e}']
+    if not isinstance(doc, dict):
+        return [f'{GUARD_WORKFLOW}: トップレベルがマップではありません']
+
+    problems: list[str] = []
+    perms = doc.get('permissions')
+    if perms != {'contents': 'read'}:
+        problems.append(
+            f'{GUARD_WORKFLOW}: permissions が {perms!r} です。'
+            '`contents: read` だけにしてください。**base の権限で走るので、'
+            'ここを広げると盗まれるものが増えます**')
+
+    saw_head_checkout = False
+    for job in (doc.get('jobs') or {}).values():
+        if not isinstance(job, dict):
+            continue
+        for step in (job.get('steps') or []):
+            if not isinstance(step, dict):
+                continue
+            name = step.get('name') or step.get('uses') or '名前なし'
+            if 'working-directory' in step:
+                problems.append(
+                    f'{GUARD_WORKFLOW} / {name}: working-directory があります。'
+                    '**head/ の中で走る step を作らないでください**')
+            uses = step.get('uses')
+            if isinstance(uses, str):
+                if uses.startswith('./') or uses.startswith(GUARD_HEAD_PATH):
+                    problems.append(
+                        f'{GUARD_WORKFLOW} / {name}: uses が木の中を指しています'
+                        f'（{uses}）。**PR が置いたアクションを実行します**')
+                if uses.startswith('actions/checkout@'):
+                    with_ = step.get('with') or {}
+                    if with_.get('persist-credentials') is not False:
+                        problems.append(
+                            f'{GUARD_WORKFLOW} / {name}: checkout に '
+                            'persist-credentials: false がありません。'
+                            '**token が .git/config に残ります**')
+                    if with_.get('path') == GUARD_HEAD_PATH:
+                        saw_head_checkout = True
+            run = step.get('run')
+            if isinstance(run, str) and run.strip() not in GUARD_ALLOWED_RUNS:
+                problems.append(
+                    f'{GUARD_WORKFLOW} / {name}: 許していない run: があります'
+                    f' → {run.strip()[:80]!r}\n'
+                    '      **この workflow は base の権限で走ります。**'
+                    'ここに PR の木を触る命令（npm ci / make / '
+                    'pip install -r head/... など）を足すと、そのまま'
+                    '乗っ取られます。増やすなら scripts/sync_guard.py の '
+                    'GUARD_ALLOWED_RUNS に、**なぜ安全かを確かめてから**'
+                    '足してください')
+
+    if not saw_head_checkout:
+        problems.append(
+            f'{GUARD_WORKFLOW}: head/ への checkout がありません。'
+            '**PR の木を読まない検査は、何も見ていません**')
+    return problems
+
+
 def main() -> int:
     root = sys.argv[1] if len(sys.argv) > 1 else '.'
     if not os.path.isdir(root):
@@ -333,6 +419,7 @@ def main() -> int:
             '走らない検査は何も報告しません。'
             '較正が要るなら scripts/recalibrate_ratchets.py を'
             '呼んでください（外す理由にはなりません）')),
+        ('この検査が PR のコードを実行しないこと', guard_is_inert(root)),
         ('この検査そのもの', files_exist(
             root, SELF,
             '**この実行は止まりません**（base 側の定義で走っています）。'

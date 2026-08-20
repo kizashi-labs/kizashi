@@ -81,6 +81,36 @@ WFLINT
 """
 
 
+GUARD_YML = """name: Sync Guard
+on:
+  pull_request_target:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  distribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@aaa
+        with:
+          persist-credentials: false
+      - name: head
+        uses: actions/checkout@aaa
+        with:
+          ref: sha
+          path: head
+          persist-credentials: false
+      - name: Install PyYAML
+        timeout-minutes: 10
+        run: pip install pyyaml
+      - name: self
+        run: python3 scripts/sync_guard_test.py
+      - name: check
+        run: python3 scripts/sync_guard.py head
+"""
+
+
 def build_clean(root: str) -> None:
     """すべての約束を満たす最小の木。"""
     write(root, '.github/workflows/workflow-lint.yml',
@@ -90,8 +120,9 @@ def build_clean(root: str) -> None:
     write(root, '.github/workflows/agent-ebpf.yml',
           workflow('build-ebpf', 20, G.STEP_TIMEOUT_FLOOR[
               '.github/workflows/agent-ebpf.yml'], EBPF_RUN))
+    write(root, G.GUARD_WORKFLOW, GUARD_YML)
     for rel, floor in G.STEP_TIMEOUT_FLOOR.items():
-        if rel.endswith('agent-ebpf.yml'):
+        if rel.endswith('agent-ebpf.yml') or rel == G.GUARD_WORKFLOW:
             continue
         write(root, rel, workflow(os.path.basename(rel)[:-4], 30, floor))
     write(root, G.VERIFY, VERIFY_SH)
@@ -109,7 +140,8 @@ class GuardCase(unittest.TestCase):
 
     def problems(self) -> list[str]:
         out: list[str] = []
-        for fn in (G.job_timeouts, G.step_timeouts, G.ebpf_mkdir):
+        for fn in (G.job_timeouts, G.step_timeouts, G.ebpf_mkdir,
+                   G.guard_is_inert):
             out += fn(self.root)
         out += G.markers(self.root, G.WORKFLOW_LINT, G.WORKFLOW_LINT_MARKERS, '')
         out += G.markers(self.root, G.VERIFY, G.VERIFY_MARKERS, '')
@@ -250,6 +282,63 @@ class TestTheEbpfMkdir(GuardCase):
     def test_a_missing_step_fires(self):
         self._ebpf('')
         self.assertFires('の step がありません')
+
+
+class TestTheGuardDoesNotRunPrCode(GuardCase):
+    """**`pull_request_target` は base の権限で走ります。**
+
+    PR のコードを1行でも実行したら、そのまま乗っ取られます。Semgrep の
+    指摘は「実行していないことを監査してください」で、監査そのものは
+    正しい —— **ただし監査は約束で、約束は腐ります。** 半年後に誰かが
+    `npm ci` を足したときに落ちる形で留めます。
+    """
+
+    def _guard(self, text: str) -> None:
+        write(self.root, G.GUARD_WORKFLOW, text)
+
+    def test_the_written_workflow_is_inert(self):
+        self.assertEqual(G.guard_is_inert(self.root), [])
+
+    def test_an_extra_run_fires(self):
+        """**ここが要です。** 足された命令は、必ず一度読まれること。"""
+        self._guard(GUARD_YML + '      - name: build\n        run: npm ci\n')
+        self.assertFires('許していない run:')
+
+    def test_a_changed_run_fires(self):
+        self._guard(GUARD_YML.replace('python3 scripts/sync_guard.py head',
+                                      'bash head/scripts/run.sh'))
+        self.assertFires('許していない run:')
+
+    def test_widened_permissions_fire(self):
+        self._guard(GUARD_YML.replace('  contents: read',
+                                      '  contents: write'))
+        self.assertFires('permissions が')
+
+    def test_a_local_action_fires(self):
+        self._guard(GUARD_YML.replace('      - name: self\n'
+                                      '        run: python3 scripts/sync_guard_test.py\n',
+                                      '      - name: self\n'
+                                      '        uses: ./head/.github/actions/x\n'))
+        self.assertFires('uses が木の中を指しています')
+
+    def test_a_working_directory_in_head_fires(self):
+        self._guard(GUARD_YML.replace('      - name: check\n',
+                                      '      - name: check\n'
+                                      '        working-directory: head\n'))
+        self.assertFires('working-directory があります')
+
+    def test_a_checkout_that_keeps_credentials_fires(self):
+        self._guard(GUARD_YML.replace('          ref: sha\n'
+                                      '          path: head\n'
+                                      '          persist-credentials: false\n',
+                                      '          ref: sha\n'
+                                      '          path: head\n'))
+        self.assertFires('persist-credentials: false がありません')
+
+    def test_dropping_the_head_checkout_fires(self):
+        """**PR の木を読まない検査は、何も見ていません。**"""
+        self._guard(GUARD_YML.replace('          path: head\n', ''))
+        self.assertFires('head/ への checkout がありません')
 
 
 class TestTheExitCode(GuardCase):
