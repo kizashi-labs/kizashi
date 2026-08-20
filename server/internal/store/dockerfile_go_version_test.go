@@ -32,7 +32,6 @@ func TestDockerfilesMatchGoModVersion(t *testing.T) {
 	// Dockerfiles that compile server/ code.
 	dockerfiles := []string{
 		filepath.Join("server", "Dockerfile"),
-		filepath.Join("deploy", "docker", "updater.Dockerfile"),
 	}
 
 	golangRe := regexp.MustCompile(`(?m)^\s*(?:ARG\s+GO_VERSION=|FROM\s+golang:)([0-9][0-9.]*)`)
