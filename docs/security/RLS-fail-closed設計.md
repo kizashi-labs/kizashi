@@ -51,15 +51,56 @@ USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
 gin は `http.ListenAndServe` を `BaseContext` 無しで呼ぶので、
 要求ごとの ctx は `context.Background()` から生えます。
 
-### 残っているのは 1 つだけ
+### 数え方を一度間違えました
 
-公開経路のうち **6 件が、4 表に触るかどうか未判定**です
-(`undecidedPublicRoutes`)。落とすと、触っていた場合に 0 行で静かに
-壊れます。**この一覧が空になったら、エスケープ節を落とせます。**
+最初この一覧は「公開経路」で数えていました。**足りません。**
+`tenantMiddleware` は `protected` にしか付いていないので、
+**認証は通るがテナントを載せない経路**があります:
 
-判定できていない理由は、gin の group 変数が関数をまたいで同じ名前で
-使われていて（`dw` が 2 か所、`v1` / `taxii` も）、素朴な走査が誤判定
-するためです。1 件ずつハンドラを読む必要があります。
+| グループ | 経路 | 触る表 |
+| --- | --- | --- |
+| `authProtected` | `/api/v1/auth/mfa/*` (5) | `users` を読み書き |
+| `emailMFAProtected` | `/mfa/email/{enable,disable}` (2) | `users` |
+| `evProtected` | `/email-verification/{send,status}` (2) | `users` |
+
+認証済みかどうかは関係ありません。**RLS が見ているのは `app.tenant_id`
+だけ**で、それを張るのは ctx です。だから数える軸は「公開か」ではなく
+**「4 表にテナント無しで届くか」**です。
+
+`internal/api/system_access_ledger_test.go` が router.go を **go/ast で
+関数ごとに**読み、テナントも名乗りも無い経路が台帳に無ければ落とします。
+関数スコープを切るのは、同名の group 変数が別の関数で使われているため
+です（`dw` が 2 か所、`v1` / `taxii` も）。ファイル全体を 1 スコープで
+読むと、`registerPlatformUpgradeRoutes` / `darkwebRoutes` の 20 経路を
+「テナント無し」と誤検出します —— 実際には `protected` で呼ばれています。
+
+### 直し方は 2 通り
+
+| | いつ | 何を足す |
+| --- | --- | --- |
+| テナントを張る | 認証済みで、誰の要求か分かっている | `tenantMiddleware`（**絞る向き**） |
+| 名乗る | テナントが決まらない（認証前・端末から・テナントを跨ぐ集計） | `sysAccess` |
+
+**名乗りは最後の手段です。** 張れるなら張ってください。
+
+### 判定の結果
+
+- `authProtected` に `tenantMiddleware` を追加（`users` の 9 経路）
+- `/api/v1/health/detailed` に `sysAccess` を追加 ——
+  **公開経路ですが `agents` / `alerts` / `incidents` を COUNT します**
+- 残りは 4 表に届かないことを確かめて `dbFreeRoutes` に理由つきで記録
+  （`/ws/*` は `notification.Hub` が DB に触らない、`track` は
+  `phishing_recipients`、`taxii` は `ioc_entries`、ほか静的応答）
+
+### まだ落とせません — 残っているのは 1 つ
+
+**単一テナント配備の JWT は `tenant_id` を持ちません。**
+`tenantMiddleware` を張っても `app.tenant_id` は空のままで、
+エスケープ節に落ちます（`protected` も同じ状態です）。
+
+塞ぐには、テナントが無いときに**既定テナントへ落とす**必要があります。
+migration 446 が `uninstall_protection` の 2 表でやったのと同じ手当てを
+4 表ぶん行うことになり、**これは挙動の変更です。** 先に測ってください。
 
 ---
 

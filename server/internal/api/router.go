@@ -844,6 +844,18 @@ func (s *Server) registerRoutes() {
 	// MFA setup/disable requires authentication
 	authProtected := api.Group("/auth")
 	authProtected.Use(authMiddleware(s.handlers.auth.JWTSecret, s.handlers.auth.Blocklist, s.handlers.auth.UserCache, s.apiKeyStore))
+	// **ここは認証済みなのに、テナントを ctx に載せていませんでした。**
+	// `tenantMiddleware` は `protected` にしか付いておらず、MFA の設定・
+	// 解除・メール確認は `users` を**テナント無しで**読み書きしていました
+	// （いまは RLS のエスケープ節が通しています）。
+	//
+	// 名乗り (`sysAccess`) ではなく、テナントを張るのが正解です ——
+	// **認証済みの要求は、誰のものか分かっています。** `authMiddleware` が
+	// JWT / APIキーから `tenant_id` を ctx に入れているので、ここで拾えます。
+	//
+	// 絞る向きにしか動きません。JWT がテナントを持たない配備（単一テナント）
+	// では、いままでどおり張られません —— そこは `protected` と同じ状態です。
+	authProtected.Use(s.tenantMiddleware())
 	{
 		authProtected.POST("/mfa/setup", s.handlers.auth.SetupMFA)
 		authProtected.POST("/mfa/confirm", s.handlers.auth.ConfirmMFA)
@@ -2118,7 +2130,11 @@ func (s *Server) registerRoutes() {
 
 	// Detailed health check (unauthenticated — includes DB latency, memory, goroutines)
 	if s.handlers.DetailedHealth != nil {
-		s.router.GET("/api/v1/health/detailed", s.handlers.DetailedHealth.DetailedHealth)
+		// **公開経路ですが、agents / alerts / incidents を数えます**
+		// （`SELECT COUNT(*) FROM agents WHERE status='online'` ほか 3 本）。
+		// テナントを跨ぐ集計なので名乗りが要ります。同じハンドラ群でも
+		// uptime / dependencies / incidents は 4 表に触りません。
+		s.router.GET("/api/v1/health/detailed", sysAccess, s.handlers.DetailedHealth.DetailedHealth)
 		s.router.GET("/api/v1/health/uptime", s.handlers.DetailedHealth.GetUptimeStats)
 		s.router.GET("/api/v1/health/dependencies", s.handlers.DetailedHealth.GetDependencies)
 		s.router.GET("/api/v1/health/incidents", s.handlers.DetailedHealth.GetIncidentHistory)
