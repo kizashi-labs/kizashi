@@ -51,7 +51,6 @@ import (
 	"github.com/edr-platform/server/internal/siem"
 	"github.com/edr-platform/server/internal/store"
 	"github.com/edr-platform/server/internal/support"
-	"github.com/edr-platform/server/internal/suppression"
 	edrsync "github.com/edr-platform/server/internal/sync"
 	"github.com/edr-platform/server/internal/telemetry"
 	"github.com/edr-platform/server/internal/threatintel"
@@ -1561,10 +1560,6 @@ func main() {
 	// ─── Software Inventory Diff Tracker ─────────────────────
 	h.SoftwareDiff = handlers.NewSoftwareDiffHandler(pool)
 
-	// ─── Alert Suppression Rules (pattern-based) ─────────────
-	suppressionRuleStore := store.NewSuppressionRuleStore(pool)
-	h.SuppressionRule = handlers.NewSuppressionRuleHandler(suppressionRuleStore)
-
 	// ─── EDR Policy Management ────────────────────────────────
 	h.EDRPolicy = handlers.NewEDRPolicyHandler(pool)
 
@@ -1965,15 +1960,6 @@ func main() {
 	h.SigmaRules = handlers.NewSigmaRulesHandler(pool)
 	h.SigmaRules.SetReloadFunc(pipeline.ReloadSigmaRules)
 	slog.Info("Sigmaルール管理ハンドラーを初期化しました")
-
-	// ─── Migration 180: Alert Suppression Engine ──────────────
-	suppressEngine := suppression.NewEngine(pool)
-	suppression.LoadBuiltinRules(suppressEngine)
-	if suppLoadErr := suppressEngine.LoadFromDB(ctx); suppLoadErr != nil {
-		slog.Warn("抑制エンジンDBロード失敗", "error", suppLoadErr)
-	}
-	h.SuppressionEngine = handlers.NewSuppressionEngineHandler(suppressEngine)
-	slog.Info("アラート抑制エンジンを初期化しました")
 
 	// ─── Migration 181: SIEM Webhook Connector ────────────────
 	siemConnector := siem.NewConnector(pool)
