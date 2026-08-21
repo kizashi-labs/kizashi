@@ -233,6 +233,10 @@ HANDOVER = [
     'docs/ci/本流へ渡す作業一覧.md',
     'scripts/handover_timeouts.py',
     'scripts/handover_timeouts_test.py',
+    # 生成器が 1 回だけ呼ぶ入口。**順番がここにしか無いので**、消えると
+    # 散文の順番に戻ります —— 読み飛ばされても何も落ちない形に。
+    'scripts/after_snapshot.py',
+    'scripts/after_snapshot_test.py',
 ]
 
 # ── 6. この検査そのもの ───────────────────────────────────────────

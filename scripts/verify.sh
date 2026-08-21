@@ -288,6 +288,11 @@ WFLINT
   # 写すと、その差だけ黙って落ちます。
   run "渡す表"      . python3 scripts/handover_timeouts.py --check
   run "渡す表 自身" . python3 scripts/handover_timeouts_test.py
+
+  # 生成器が呼ぶ入口の**順番**。道具そのものはこの配置で走らせません
+  # （ここでは何も落ちていないので、戻すものがありません）。留めるのは
+  # 2 → 3 の順で、**逆でも 3 本とも 0 を返すので出力では見分けが付きません。**
+  run "生成器の入口 自身" . python3 scripts/after_snapshot_test.py
 fi
 
 # ── 同期の取りこぼし ─────────────────────────────────────────────
