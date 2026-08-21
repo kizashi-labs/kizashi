@@ -4,8 +4,20 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// suppressionQuerier は、この loader が pool に求めるものだけを切り出した形。
+//
+// **偽物を差せるようにするために置いています。** 走査が途中で失敗したことが
+// 呼び出し側に伝わるか（`rows.Err()` を返しているか）は、実 DB では狙って
+// 起こせません —— 起こせない失敗は、検査できない失敗です。
+//
+// `*pgxpool.Pool` はそのまま満たすので、呼び出し側は変わりません。
+type suppressionQuerier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
 
 // PoolSuppressionLoader loads active suppression rules straight from a pgx pool.
 //
@@ -20,11 +32,17 @@ import (
 // 「片方のプロセスでは抑制されるがもう片方では出る」は、運用者からは
 // 「抑制が効いたり効かなかったりする」としか見えない。
 type PoolSuppressionLoader struct {
-	pool *pgxpool.Pool
+	pool suppressionQuerier
 }
 
 // NewPoolSuppressionLoader returns a SuppressionLoader backed by pool.
 func NewPoolSuppressionLoader(pool *pgxpool.Pool) *PoolSuppressionLoader {
+	// **nil は nil のまま持ちます。** interface に nil の *pgxpool.Pool を
+	// 入れると「nil でない interface」になり、下の nil 検査をすり抜けて
+	// panic します。呼び出し側は pool が無い構成でもここを通ります。
+	if pool == nil {
+		return &PoolSuppressionLoader{}
+	}
 	return &PoolSuppressionLoader{pool: pool}
 }
 

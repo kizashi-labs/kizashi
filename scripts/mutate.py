@@ -93,6 +93,8 @@ class Harness:
                  strict: bool = True):
         self.root = os.path.abspath(root)
         self.cmd = cmd
+        # この配置に無いファイル（NOT_SHIPPED）。飛ばした理由を出すため。
+        self._absent: set[str] = set()
         self.cwd = os.path.join(self.root, cwd)
         self.build_markers = build_markers
         # strict: 生き残った変異と、当たらなくなった変異を失敗として扱います。
@@ -162,6 +164,15 @@ class Harness:
 
     def _apply(self, rel: str, old: str, new: str) -> bool:
         path = os.path.join(self.root, rel)
+        # **同梱されないファイルは、落ちるのではなく飛ばします。**
+        # 生成器はこのリポジトリに配らないファイルを決めており
+        # (scripts/mutations/NOT_SHIPPED.txt)、`--check` は前からそれを
+        # 許していました。**実行側だけが FileNotFoundError で止まって
+        # いました** —— 同じものを、片方は許し片方は落とす形でした。
+        # 飛ばしたことは呼び出し側が「なぜ」まで出します。
+        if not os.path.exists(path):
+            self._absent.add(rel)
+            return False
         src = _read(path)
         if old not in src:
             return False
@@ -222,11 +233,16 @@ class Harness:
             return 1
         print('baseline green\n')
 
-        killed = survived = notakill = skipped = 0
+        killed = survived = notakill = skipped = notshipped = 0
         for rel, old, new, label in cases:
             if not self._apply(rel, old, new):
-                skipped += 1
-                print(f'  SKIP (pattern absent)  {label}')
+                if rel in self._absent:
+                    # **この配置に無いだけです。仕様書は壊れていません。**
+                    notshipped += 1
+                    print(f'  SKIP (この配置に同梱されていません)  {label}')
+                else:
+                    skipped += 1
+                    print(f'  SKIP (pattern absent)  {label}')
                 continue
             try:
                 green, out = self._run_tests()
@@ -244,7 +260,8 @@ class Harness:
                 self._restore()
 
         print(f'\nkilled={killed} survived={survived} '
-              f'not-a-kill={notakill} skipped={skipped}')
+              f'not-a-kill={notakill} skipped={skipped} '
+              f'not-shipped={notshipped}')
         ok, _ = self._run_tests()
         print('restored green' if ok else 'RESTORE FAILED')
 
@@ -256,6 +273,13 @@ class Harness:
             bad.append('復元後のベースラインが赤いままです')
         if survived:
             bad.append(f'{survived} 件の変異が生き残りました')
+        # **同梱されていないぶんは失敗にしません。** 仕様書が壊れて
+        # いるのではなく、この配置にそのファイルが配られていないだけです
+        # （scripts/mutations/NOT_SHIPPED.txt）。`--check` は前からこの 2 つを
+        # 区別していて、実行側だけが一緒くたにしていました。
+        #
+        # **数は出します。** 黙って飛ばすと、配られなくなったゲートが
+        # 「通った」と見分けが付かなくなります。
         if self.strict and skipped:
             bad.append(f'{skipped} 件の変異が当たりませんでした'
                        '（対象が動いています。仕様書を直してください）')
