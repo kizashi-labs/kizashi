@@ -141,26 +141,38 @@ CASES += [
      'レポートの予定表の確認が、自前に戻る'),
 ]
 
-RUN = ('TestTableProbeFailureIsNotAbsence|TestTableProbeTimeoutIsNotAbsence|'
-       'TestNoHandlerAsksInformationSchemaOnItsOwn|TestNoInformationSchemaReasonHasGoneStale|'
+# **消えたテスト名を書いたままにしないでください。** `-run` は当たらない
+# 名前を黙って無視するので、**書いた検査が 1 本も走っていなくても緑**です。
+# ここに並ぶ名前は、すべて木にあるものです（#74 で 8 本が消えていました）。
+RUN = ('TestNoNewHandlerAsksInformationSchemaOnItsOwn|'
+       'TestAProbeFailureIsNotAnAbsence|'
        'TestFailuresAreNotAnsweredWithAValue|TestReturnExceptionCountIsPinned|'
-       'TestNoReturnExceptionHasGoneStale|TestProbeAnswerNeverTurnsAFailureIntoAbsence|'
-       'TestProbeAnswerStillReportsRealAbsence|TestTheTableProbeDetectorRecognisesTheRealThing|'
-       'TestTheHandlerScanFloorNoticesAnEmptyWalk|TestDeclaresFuncActuallyComparesTheName')
+       'TestNoReturnExceptionHasGoneStale')
 
 # handlers の外は、その package の検査で殺します。
 OUTSIDE_HARNESS = Harness(
     root=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    # **`./internal/detection/` を足しました。** SUP は上流の一本化で
+    # そちらへ移りました（#74）。数で留める走査
+    # （rows_err_returnable_test.go）は床に 28 の余裕があるので、
+    # **1 箇所消えても割れません** —— 特定の 1 箇所を守るのは
+    # suppression_loader_test.go のほうです。
     cmd=['go', 'test', '-count=1',
          '-run', 'TestFunctionsThatCanReturnAnErrorDoNotDiscardRowsErr|'
-                 'TestNoHandlerAsksInformationSchemaOnItsOwn',
-         './internal/store/', './internal/api/handlers/'],
+                 'TestNoNewHandlerAsksInformationSchemaOnItsOwn|'
+                 'TestAProbeFailureIsNotAnAbsence|'
+                 'TestASuppressionScanThatFailsPartWayIsNotReportedAsSuccess|'
+                 'TestASuppressionScanThatFinishesIsNotReportedAsFailure|'
+                 'TestReportsDoesNotProbeTablesOnItsOwn',
+         './internal/store/', './internal/api/handlers/',
+         './internal/detection/', './internal/reports/'],
     cwd='server',
 )
 
 HARNESS = Harness(
     root=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    cmd=['go', 'test', '-count=1', '-run', RUN, './internal/api/handlers/'],
+    cmd=['go', 'test', '-count=1', '-run', RUN,
+         './internal/api/handlers/', './internal/store/'],
     cwd='server',
 )
 

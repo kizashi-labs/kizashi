@@ -184,12 +184,21 @@ HARNESS = Harness(
     cwd='server',
 )
 
+# **走らせる package が足りないと、変異は「殺されない」ではなく
+# 「試されない」で通り抜けます。** そして出力は SURVIVED —— 網が無いのと
+# 見分けが付きません。
+#
+# `./internal/detection/` を足したのは、抑制ヒット数の書き込みが上流の
+# 一本化で `internal/suppression` から `internal/detection` へ移ったからです
+# （#74）。網（TestAFailedSuppressionHitCountIsReported）はずっとあったのに、
+# **ここが handlers しか走らせていなかったので当たっていませんでした。**
 WRITE_HARNESS = Harness(
     root=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     cmd=['go', 'test', '-count=1', '-run',
          'TestNoDiscardedWriteIsAnsweredWithSuccess|TestEveryDiscardedWriteIsClassified|'
-         'TestEveryWriteCategoryIsOneOfTheFour',
-         './internal/api/handlers/'],
+         'TestEveryWriteCategoryIsOneOfTheFour|'
+         'TestAFailedSuppressionHitCountIsReported|TestNoSuppressionCounterIsNotAFailure',
+         './internal/api/handlers/', './internal/detection/'],
     cwd='server',
 )
 
