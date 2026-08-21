@@ -136,7 +136,7 @@ def build_clean(root: str) -> None:
             continue
         write(root, rel, workflow(os.path.basename(rel)[:-4], 30, floor))
     write(root, G.VERIFY, VERIFY_SH)
-    for rel in G.RATCHETS + G.RECALIBRATORS + G.SELF:
+    for rel in G.RATCHETS + G.RECALIBRATORS + G.SELF + G.HANDOVER:
         # .yml は上の STEP_TIMEOUT_FLOOR の輪で、上限つきに作ってあります。
         if rel.endswith('.yml'):
             continue
@@ -166,6 +166,7 @@ class GuardCase(unittest.TestCase):
         out += G.markers(tree, G.VERIFY, G.VERIFY_MARKERS, '')
         out += G.files_exist(tree, G.RATCHETS, '')
         out += G.files_exist(tree, G.RECALIBRATORS, '')
+        out += G.files_exist(tree, G.HANDOVER, '')
         out += G.files_exist(tree, G.SELF, '')
         return out
 
@@ -258,6 +259,15 @@ class TestTheRatchets(GuardCase):
     def test_a_deleted_guard_workflow_fires(self):
         os.unlink(os.path.join(self.root, '.github/workflows/sync-guard.yml'))
         self.assertFires('sync-guard.yml')
+
+    def test_a_deleted_handover_table_fires(self):
+        """**表が消えると、値がリポジトリのどこにも残りません。**
+
+        「無い」ことは workflow-lint が言えますが、それも同じ同期で
+        消えます（#70 で実際に消えました）。
+        """
+        os.unlink(os.path.join(self.root, G.HANDOVER[0]))
+        self.assertFires(G.HANDOVER[0])
 
     def test_all_sixteen_are_named(self):
         """**数ではなく名前で留めます。** 数だと入れ替わりが通ります。"""
