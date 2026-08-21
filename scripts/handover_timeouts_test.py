@@ -303,8 +303,8 @@ class TestTheRealTree(unittest.TestCase):
                 lines = fh.read().split('\n')
             with open(path, 'w', encoding='utf-8') as fh:
                 fh.write('\n'.join(
-                    l for l in lines
-                    if l.strip().split(':')[0] != 'timeout-minutes'))
+                    line for line in lines
+                    if line.strip().split(':')[0] != 'timeout-minutes'))
         self.assertEqual(H.read_tree(root)[0], [])
 
         with open(os.path.join(ROOT, H.HANDOVER), encoding='utf-8') as fh:
