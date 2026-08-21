@@ -1154,6 +1154,14 @@ jobs:
       - name: The sync guard fails on a tree that dropped something
         run: python3 scripts/sync_guard_test.py
 
+      # 本流へ渡す表を作り、木へ戻す道具そのもの。**壊れたまま動くと、
+      # `--restore` は「入れました」と言って何も入れず、`--check` は
+      # 違いを見落として緑を返します** —— どちらも、この表が防ごうと
+      # している事故そのものです。改名された step を静かに飛ばさない
+      # ことを、重点的に留めます。
+      - name: The handover table can rebuild the tree it describes
+        run: python3 scripts/handover_timeouts_test.py
+
       # 出しているアラートルールが、本当に読み込まれる場所にあること。
       # prometheus_alerts.yml は19本を持ったまま、rule_files から外れて
       # いました。ファイルがあることと、読まれていることは別です。

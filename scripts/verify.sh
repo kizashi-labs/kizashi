@@ -282,6 +282,12 @@ if problems:
     sys.exit(1)
 print("ワークフローファイルはすべて読み込み可能です")
 WFLINT
+
+  # 表と実物の突き合わせ。上の節は**合計**しか見ないので、値が 1 つ
+  # 書き換わっても通ります。**本流はこの表を写します** —— 古い行を
+  # 写すと、その差だけ黙って落ちます。
+  run "渡す表"      . python3 scripts/handover_timeouts.py --check
+  run "渡す表 自身" . python3 scripts/handover_timeouts_test.py
 fi
 
 # ── 同期の取りこぼし ─────────────────────────────────────────────
