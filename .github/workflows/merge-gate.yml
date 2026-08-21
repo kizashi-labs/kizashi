@@ -109,9 +109,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          main_nums="$(ls server/migrations/*.sql \
-            | sed 's|.*/||; s|_.*||' | sort -u)"
-          echo "main の migration 番号: $(echo "$main_nums" | tr '\n' ' ')"
+          # 番号はディレクトリごとの名前空間である。server/migrations/*.sql は
+          # migrate.go が起動時に流す本流、server/migrations/operator/*.sql は
+          # 運用者が手で流す別系列で、採番も別。internal/store の番号一意性テストも
+          # e.IsDir() で弾いて最上位しか見ておらず、そちらが正である。
+          #
+          # 以前はここが basename だけを見ていたため、operator/001 が最上位の
+          # 001_init_schema.sql と衝突扱いになった。実害は「その PR が開いている
+          # あいだじゅう main の Merge Gate が赤いまま」で、恒常的に赤い門は
+          # 無視される門になる——このワークフロー自身が上のコメントでそう書いている。
+          #
+          # `|| true` はディレクトリが main にまだ無い場合のため。set -e と
+          # pipefail の下では ls の失敗でジョブごと落ちる。
+          nums_in() {
+            ls "$1"/*.sql 2>/dev/null | sed 's|.*/||; s|_.*||' | sort -u || true
+          }
+          echo "main の migration 番号: $(nums_in server/migrations | tr '\n' ' ')"
+          echo "main の operator 番号: $(nums_in server/migrations/operator | tr '\n' ' ')"
 
           # 対象は「これからマージされうる PR」だけ。draft と、長く動いていない
           # ブランチは除外する。
@@ -176,12 +190,15 @@ jobs:
 
             for f in $files; do
               num="$(basename "$f" | sed 's|_.*||')"
+              # 突き合わせは同じディレクトリの中だけで行う（上の nums_in 参照）。
+              dir="$(dirname "$f")"
+              dir_nums="$(nums_in "$dir")"
               # here-string にするのは ci.yml と同じ理由です (pipefail + `grep -q`
               # の SIGPIPE で、**一致したときに「一致しなかった」を返す**)。
-              # main_nums は今は小さいので実害は出ていませんが、番号が増えれば
+              # 番号の集合は今は小さいので実害は出ていませんが、増えれば
               # 「衝突しているのに衝突していないと言う」門になります。
-              if grep -qx "$num" <<<"$main_nums"; then
-                echo "::${level}::PR #$pr が追加する $(basename "$f") の番号 $num は、すでに main にあります。マージすると main が赤くなります。"
+              if grep -qx "$num" <<<"$dir_nums"; then
+                echo "::${level}::PR #$pr が追加する $f の番号 $num は、すでに main の $dir にあります。マージすると main が赤くなります。"
                 collisions=$((collisions + 1))
               fi
             done

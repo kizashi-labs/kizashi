@@ -174,7 +174,7 @@ function ChartCard({
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
             labelStyle={{ color: '#7d92b0' }}
-            formatter={(v) => [`${v}${unit}`, label]}
+            formatter={(v: number) => [`${v}${unit}`, label]}
           />
           <Line
             type="monotone"

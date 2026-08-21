@@ -703,7 +703,7 @@ export default function RuleMetricsPage() {
                     fontSize: 12,
                   }}
                   cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                  formatter={(value) => [Number(value).toLocaleString(), 'アラート数']}
+                  formatter={(value: number) => [value.toLocaleString(), 'アラート数']}
                 />
                 <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                   {top10.map((entry, i) => (
@@ -755,8 +755,8 @@ export default function RuleMetricsPage() {
                     color: '#e2e8f4',
                     fontSize: 12,
                   }}
-                  formatter={(value) => [Number(value).toLocaleString(), 'アラート数']}
-                  labelFormatter={(label) => formatDate(String(label))}
+                  formatter={(value: number) => [value.toLocaleString(), 'アラート数']}
+                  labelFormatter={(label) => formatDate(label)}
                 />
                 <Line
                   type="monotone"

@@ -1038,7 +1038,7 @@ function SLABreachSection({ alerts }: { alerts: Alert[] }) {
                 color: '#fff',
                 fontSize: 12,
               }}
-              formatter={(v) => [`${v}%`]}
+              formatter={(v: number) => [`${v}%`]}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -1153,7 +1153,7 @@ function MttdMttrWoWSection({
             <Tooltip
               contentStyle={TOOLTIP_STYLE}
               labelStyle={{ color: '#fff' }}
-              formatter={(v, name) => [minutesToDisplay(Number(v)), name]}
+              formatter={(v: number, name: string) => [minutesToDisplay(v), name]}
             />
             <Legend wrapperStyle={{ fontSize: 11, color: '#9CA3AF' }} />
             <Bar dataKey="MTTD" name="MTTD" fill="#EAB308" radius={[3, 3, 0, 0]} />

@@ -1974,17 +1974,55 @@ paths:
               required: [name, conditions]
               properties:
                 name: { type: string }
+                description: { type: string }
                 conditions:
-                  type: object
-                  description: 抑制条件 (JSONフィルタ)
-                duration_seconds:
+                  $ref: "#/components/schemas/SuppressionConditions"
+                duration_h:
                   type: integer
-                  description: 抑制期間(秒) 0=無期限
-                  default: 0
+                  description: 抑制期間(時間)
+                  default: 24
+                is_active:
+                  type: boolean
+                  description: 省略時は有効
+                expires_at:
+                  type: string
+                  format: date-time
+                  description: RFC3339。解釈できない値は 400
       responses:
         "201": { description: 作成成功 }
         "400": { $ref: "#/components/responses/BadRequest" }
   /api/v1/suppressions/{id}:
+    put:
+      operationId: updateSuppression
+      tags: [rules]
+      summary: 抑制ルール更新
+      parameters:
+        - $ref: "#/components/parameters/ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                conditions:
+                  $ref: "#/components/schemas/SuppressionConditions"
+                duration_h:
+                  type: integer
+                  description: 0 は未指定として既存値を保つ
+                is_active:
+                  type: boolean
+                  description: 省略時は有効
+                expires_at:
+                  type: string
+                  format: date-time
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
     delete:
       operationId: deleteSuppression
       tags: [rules]
@@ -9880,140 +9918,6 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Undocumented" }
 
-  /api/v1/admin/suppression-rules:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/suppression-rules
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminSuppressionRules
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    post:
-      tags: [admin]
-      summary: POST /api/v1/admin/suppression-rules
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: postAdminSuppressionRules
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression-rules/{id}:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/suppression-rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminSuppressionRulesId
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    put:
-      tags: [admin]
-      summary: PUT /api/v1/admin/suppression-rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: putAdminSuppressionRulesId
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    delete:
-      tags: [admin]
-      summary: DELETE /api/v1/admin/suppression-rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: deleteAdminSuppressionRulesId
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression-rules/{id}/toggle:
-    post:
-      tags: [admin]
-      summary: POST /api/v1/admin/suppression-rules/{id}/toggle
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: postAdminSuppressionRulesIdToggle
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/rules:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/suppression/rules
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminSuppressionRules2
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    post:
-      tags: [admin]
-      summary: POST /api/v1/admin/suppression/rules
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: postAdminSuppressionRules2
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/rules/{id}:
-    put:
-      tags: [admin]
-      summary: PUT /api/v1/admin/suppression/rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: putAdminSuppressionRulesId2
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-    delete:
-      tags: [admin]
-      summary: DELETE /api/v1/admin/suppression/rules/{id}
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: deleteAdminSuppressionRulesId2
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/rules/{id}/toggle:
-    put:
-      tags: [admin]
-      summary: PUT /api/v1/admin/suppression/rules/{id}/toggle
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: putAdminSuppressionRulesIdToggle
-      x-generated: true
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/stats:
-    get:
-      tags: [admin]
-      summary: GET /api/v1/admin/suppression/stats
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: getAdminSuppressionStats
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
-  /api/v1/admin/suppression/test:
-    post:
-      tags: [admin]
-      summary: POST /api/v1/admin/suppression/test
-      description: 実装の存在のみ自動検証。要求/応答の形状は未記載。
-      operationId: postAdminSuppressionTest
-      x-generated: true
-      responses:
-        "200": { $ref: "#/components/responses/Undocumented" }
-
   /api/v1/admin/system-settings/maintenance:
     get:
       tags: [admin]
@@ -17280,6 +17184,43 @@ components:
               - $ref: "#/components/schemas/AgentLimitReachedError"
 
   schemas:
+    SuppressionConditions:
+      type: object
+      description: |
+        抑制条件。書かれた条件すべてに一致したアラートだけを抑制する (AND)。
+        一致の仕方は条件ごとに違う (`server/internal/detection/suppression_matcher.go`)。
+
+        条件がひとつも無いルール、および書かれた条件が全て「絞り込みにならない」
+        ルール (`severity_max: 10`、`mitre_technique: "T"` など) は catch-all として
+        **検知エンジンが適用を拒む** (`ClassifySuppression`)。保存自体は成功するので、
+        API 利用者は条件を1つ以上指定すること。
+
+        更新 (PUT) では conditions は列ごと置き換わる。編集後の条件を丸ごと送ること。
+      properties:
+        rule_name:
+          type: string
+          description: 検知ルール名の部分一致 (大文字小文字を区別しない)
+        hostname:
+          type: string
+          description: ホスト名の部分一致 (大文字小文字を区別しない)
+        agent_id:
+          type: string
+          description: エージェントIDの完全一致
+        mitre_technique:
+          type: string
+          description: MITRE 技法の前方一致 (T1059 は T1059.001 にも当たる)
+        severity_max:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: この値以下の重大度だけを抑制。10 は上限そのもので何も絞れない
+        command_line_contains:
+          type: string
+          description: コマンドラインの部分一致。8文字未満は絞り込みとみなされない
+        parent_process:
+          type: string
+          description: 親プロセス画像パスの後方一致
+
     Tenant:
       type: object
       properties:

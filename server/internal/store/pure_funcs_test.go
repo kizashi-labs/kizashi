@@ -110,32 +110,6 @@ func TestNilIfEmpty_NonEmptyStringPointerReturnsValue(t *testing.T) {
 	}
 }
 
-// ─── nilIfEmptyPtr ───────────────────────────────────────────────────────────
-
-func TestNilIfEmptyPtr_NilPointerReturnsNil(t *testing.T) {
-	if got := nilIfEmptyPtr(nil); got != nil {
-		t.Errorf("nil ポインタは nil を返すべき: got %v", got)
-	}
-}
-
-func TestNilIfEmptyPtr_EmptyStringPointerReturnsNil(t *testing.T) {
-	s := ""
-	if got := nilIfEmptyPtr(&s); got != nil {
-		t.Errorf("空文字列ポインタは nil を返すべき: got %v", got)
-	}
-}
-
-func TestNilIfEmptyPtr_NonEmptyStringPointerReturnsValue(t *testing.T) {
-	s := "pattern"
-	got := nilIfEmptyPtr(&s)
-	if got == nil {
-		t.Fatal("非空文字列は nil でないべき")
-	}
-	if got.(string) != "pattern" {
-		t.Errorf("got = %v, want %q", got, "pattern")
-	}
-}
-
 // ─── containsStr ─────────────────────────────────────────────────────────────
 
 func TestContainsStr_Found(t *testing.T) {

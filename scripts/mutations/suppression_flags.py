@@ -4,7 +4,6 @@
 対象:
   server/internal/detection/suppression_loader.go   （適用する側。#757 で
                                                      store から移った）
-  server/internal/suppression/engine.go
   server/internal/store/suppressions.go             （書き手）
 
 `suppression_rules` には**有効を表す旗が2つ**あります:
@@ -12,8 +11,14 @@
     is_active   コンソールの抑制ルール画面 (store.SuppressionStore) が書き、
                 **実際に適用される側** (detection.PoolSuppressionLoader の
                 ListActiveSuppressions) が読みます
-    enabled     internal/suppression.Engine の API が書き、Engine の
-                LoadFromDB が読みます
+    enabled     かつて internal/suppression.Engine の API が書いていました。
+                **その Engine は撤去済み**（保存はできるが本番の検知経路から
+                呼ばれなかったため）。いまは store.SuppressionStore が
+                is_active と同じ値を書きます
+
+**撤去しても、この旗を読む側は外せません。** 撤去した API が過去に
+enabled=false を書いた行が残っており、読み手が見るのをやめると
+**無効にしたはずの抑制が復活します。**
 
 どちらも既定は TRUE です。**片方だけに書くと、書かなかった側は TRUE の
 まま残ります。**
@@ -44,7 +49,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mutate import Harness  # noqa: E402
 
 A = 'server/internal/detection/suppression_loader.go'
-E = 'server/internal/suppression/engine.go'
 S = 'server/internal/store/suppressions.go'
 
 CASES = [
@@ -55,15 +59,6 @@ CASES = [
     (A, '\t\tWHERE is_active = TRUE\n\t\t  AND COALESCE(enabled, TRUE) = TRUE',
         '\t\tWHERE (is_active = TRUE\n\t\t  OR COALESCE(enabled, TRUE) = TRUE)',
      'どちらか片方でも on なら適用する（**抑制する方向に倒します**）'),
-    (E, '\t\t  AND COALESCE(is_active, TRUE) = TRUE\n', '',
-     'Engine が is_active を見なくなる'),
-
-    # ── 書き手 ─────────────────────────────────────────────────────────────
-    (E, 'VALUES ($1, $2, $3, $3, $4, $5, $6)', 'VALUES ($1, $2, $3, TRUE, $4, $5, $6)',
-     'Engine の作成が、もう片方の旗を常に TRUE にする'),
-    (E, '\t\t\tSET name=$1, description=$2, enabled=$3, is_active=$3, conditions=$4,',
-        '\t\t\tSET name=$1, description=$2, enabled=$3, conditions=$4,',
-     'Engine の更新が、もう片方の旗を書かなくなる'),
     (S, '\t\tVALUES ($1, $2, $3, $4, $5, $5, $6::uuid, $7)`,',
         '\t\tVALUES ($1, $2, $3, $4, $5, TRUE, $6::uuid, $7)`,',
      'コンソールの作成が、もう片方の旗を常に TRUE にする'),
@@ -75,14 +70,16 @@ CASES = [
      'SetActive の向きが逆になる'),
 ]
 
-RUN = ('TestAddRuleWritesBothFlags|TestUpdateRuleWritesBothFlags|'
-       'TestLoadFromDBHonoursBothFlags|TestARuleDisabledOnEitherFlagIsNotApplied|TestTheConsoleWritesBothFlags|'
-       'TestSetActiveMovesBothFlags|TestTheConsoleSuppressionTableStillHasNoReader')
+# Engine (internal/suppression) は撤去したので、その3件
+# (TestAddRuleWritesBothFlags / TestUpdateRuleWritesBothFlags /
+# TestLoadFromDBHonoursBothFlags) は外した。表の検査は撤去後の状態を
+# 留めるものに改名されている。
+RUN = ('TestARuleDisabledOnEitherFlagIsNotApplied|TestTheConsoleWritesBothFlags|'
+       'TestSetActiveMovesBothFlags|TestTheRetiredSuppressionTableHasNoReaderAndNoWriter')
 
 HARNESS = Harness(
     root=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    cmd=['go', 'test', '-count=1', '-run', RUN, './internal/store/', './cmd/detection/',
-         './internal/suppression/'],
+    cmd=['go', 'test', '-count=1', '-run', RUN, './internal/store/', './cmd/detection/'],
     cwd='server',
 )
 

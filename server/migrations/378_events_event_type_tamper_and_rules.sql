@@ -1,3 +1,19 @@
+--
+-- ─── 公開版向けの差し替え（scripts/public-snapshot/overlay） ──────────────
+--
+-- 本流の同名ファイルは、スキーマ変更のあとに検知ルールの INSERT が続く。
+-- 公開版は検知コンテンツをパックで配るので、**スキーマ変更だけを残し、
+-- INSERT を落とした版**がこれ。
+--
+-- ファイルごと除外できないのは、events_event_type_check の付け替えなど
+-- スキーマ側が公開版でも必要なため。番号とファイル名は本流と同一にする
+-- （schema_migrations は version としてファイル名を持つので、名前を変えると
+-- 適用済みの環境で再実行される）。
+--
+-- 落としたルールは rulepacks/ に入っている。公開版に同梱されるのは
+-- baseline.json のみ。
+--
+
 -- 378: allow 'tamper' in events.event_type, and seed the DB-side detection rules.
 --
 -- The agent gained a userland self-protection path: the watchdog records deaths
@@ -100,149 +116,3 @@ $migration$;
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── T1562.001 : シグナルによるエージェント強制終了 ──────────────────
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'EDR Agent Killed by Signal (DB)', 'sigma', ARRAY['linux','windows','macos'], 9,
-$$
-title: EDR Agent Killed by Signal (DB)
-description: The EDR agent process was terminated by a signal that the watchdog did not send. Nothing inside the agent signals itself, and an operator-driven stop goes through the service manager, which cancels the watchdog first and is therefore not reported. A signalled death is external interference with the sensor (T1562.001).
-status: stable
-level: critical
-tags:
-  - attack.t1562.001
-  - attack.defense_evasion
-logsource:
-  category: tamper
-detection:
-  selection:
-    tamper_type: agent_killed
-  condition: selection
-falsepositives:
-  - An out-of-band `kill` issued by an administrator debugging the agent
-$$,
-'community', ARRAY['T1562.001'],
-'ウォッチドッグが観測した、シグナルによるエージェントの強制終了。センサー無効化の直接的な兆候。', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'EDR Agent Killed by Signal (DB)');
-
--- ── T1562.001 : シグナルによらないエージェントの予期しない終了 ──────
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'EDR Agent Unexpected Exit (DB)', 'sigma', ARRAY['linux','windows','macos'], 6,
-$$
-title: EDR Agent Unexpected Exit (DB)
-description: The EDR agent exited without a signal and without the watchdog asking it to. This is either a crash or, on Windows, a TerminateProcess that the exit code cannot be distinguished from. Either way the endpoint was unmonitored until the watchdog restarted it, which is why it is reported rather than only logged.
-status: stable
-level: medium
-tags:
-  - attack.t1562.001
-  - attack.defense_evasion
-logsource:
-  category: tamper
-detection:
-  selection:
-    tamper_type: agent_exited
-  condition: selection
-falsepositives:
-  - A genuine agent crash. Investigate the agent log before treating it as an attack.
-$$,
-'community', ARRAY['T1562.001'],
-'シグナルによらないエージェントの予期しない終了。クラッシュと強制終了の区別がつかないため中程度。', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'EDR Agent Unexpected Exit (DB)');
-
--- ── T1554 / T1562.001 : エージェントバイナリの改ざん ────────────────
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'EDR Agent Binary Modified (DB)', 'sigma', ARRAY['linux','windows','macos'], 9,
-$$
-title: EDR Agent Binary Modified (DB)
-description: The on-disk EDR agent binary no longer matches the digest recorded for it. Reported either by the start-up integrity check (a swap performed while the agent was down) or by the running agent re-hashing itself against an in-memory baseline (a swap performed underneath it). A legitimate update goes through the updater, which re-records the digest, so it does not produce this (T1554).
-status: stable
-level: critical
-tags:
-  - attack.t1554
-  - attack.t1562.001
-  - attack.defense_evasion
-  - attack.persistence
-logsource:
-  category: tamper
-detection:
-  selection:
-    tamper_type: binary_modified
-  condition: selection
-falsepositives:
-  - A binary replaced by hand, outside the updater
-$$,
-'community', ARRAY['T1554','T1562.001'],
-'エージェントバイナリのハッシュ不一致。正規アップデータ経由の更新では発生しない。', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'EDR Agent Binary Modified (DB)');
-
--- ── T1562.001 : エージェント設定の改ざん ────────────────────────────
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'EDR Agent Config Modified (DB)', 'sigma', ARRAY['linux','windows','macos'], 8,
-$$
-title: EDR Agent Config Modified (DB)
-description: The EDR agent config file changed while the agent was running. Rewriting the config defeats the sensor without touching a byte of its code — pointing it at a different server, or disabling collectors, leaves a healthy-looking agent that reports nothing useful (T1562.001).
-status: stable
-level: high
-tags:
-  - attack.t1562.001
-  - attack.defense_evasion
-logsource:
-  category: tamper
-detection:
-  selection:
-    tamper_type: config_modified
-  condition: selection
-falsepositives:
-  - Configuration management (Ansible/Puppet/Chef) rewriting the file in place
-$$,
-'community', ARRAY['T1562.001'],
-'稼働中にエージェント設定ファイルが変更された。コードを触らずセンサーを無力化する手口。', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'EDR Agent Config Modified (DB)');
-
--- ── T1562.001 : ウォッチドッグ（監視プロセス）の消滅 ────────────────
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'EDR Watchdog Missing (DB)', 'sigma', ARRAY['linux','windows','macos'], 8,
-$$
-title: EDR Watchdog Missing (DB)
-description: The agent is running but the watchdog process supervising it is gone. Killing the supervisor first is what makes killing the agent stick, so this frequently precedes the agent's own death rather than following it. The agent is the only half of the pair still alive to report it (T1562.001).
-status: stable
-level: high
-tags:
-  - attack.t1562.001
-  - attack.defense_evasion
-logsource:
-  category: tamper
-detection:
-  selection:
-    tamper_type: watchdog_missing
-  condition: selection
-falsepositives:
-  - The watchdog crashed on its own
-$$,
-'community', ARRAY['T1562.001'],
-'エージェントは稼働中だが監視役のウォッチドッグが消滅。エージェント停止の前段として起きやすい。', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'EDR Watchdog Missing (DB)');
-
--- ── T1562.001 : エージェントPIDへのkill/ハンドルオープン試行 ────────
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'EDR Agent Termination Attempt (DB)', 'sigma', ARRAY['linux','windows'], 9,
-$$
-title: EDR Agent Termination Attempt (DB)
-description: Something tried to terminate the EDR agent and the kernel layer saw it — a kill against the protected PID (Linux eBPF LSM task_kill) or a handle carrying terminate/inject rights opened against it (Windows ObRegisterCallbacks). Unlike the watchdog's after-the-fact report, this names the process that tried, and fires whether or not the attempt succeeded.
-status: stable
-level: critical
-tags:
-  - attack.t1562.001
-  - attack.defense_evasion
-logsource:
-  category: tamper
-detection:
-  selection:
-    tamper_type:
-      - kill_attempt
-      - handle_open_attempt
-  condition: selection
-falsepositives:
-  - Process management tooling enumerating handles across all processes
-$$,
-'community', ARRAY['T1562.001'],
-'カーネル層が捉えたエージェントPIDへの終了試行。試行元プロセスまで特定できる。防御タグ有効時のみ発生。', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'EDR Agent Termination Attempt (DB)');

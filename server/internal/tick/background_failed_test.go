@@ -165,7 +165,6 @@ var backgroundFailedSites = map[string]string{
 	"detection/engine.go:noteSuppressionHit": catPerEvent,
 	"webhooks/dispatcher.go:recordDelivery":  catPerEvent,
 	"webhooks/dispatcher.go:updateLastFired": catPerEvent,
-	"suppression/engine.go:incrementHit":     catPerEvent,
 	// **通知1回ごと**です。ここは送信そのものではなく、ファンアウト
 	// 1 回分の結末（全滅 / 一部失敗）を数えています。呼び出し元は
 	// 検知エンジンと定期スキャンの両方で、どちらも答える相手が
@@ -192,8 +191,8 @@ const (
 	// 76 → 69 / 61 → 55 (全体同期の取り込み)。減っているのは、分類が指していた
 	// 6 つの宛先がこのリポジトリに含まれないため（MDM / billing / LDAP /
 	// updater —— いずれも商用版側）。**下げる方向にしか動かさないこと。**
-	backgroundFailedCount = 69
-	backgroundFailedFuncs = 55
+	backgroundFailedCount = 68
+	backgroundFailedFuncs = 54
 )
 
 func TestEveryBackgroundFailedSiteIsClassified(t *testing.T) {

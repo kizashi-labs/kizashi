@@ -40,6 +40,14 @@ type SystemUpdateSettings struct {
 	NotifyEmail            string    `json:"notify_email"`
 	Channel                string    `json:"channel"`
 	UpdatedAt              time.Time `json:"updated_at"`
+
+	// Check health. "no update is available" and "we have not managed to ask
+	// for months" looked identical in the console; these fields separate them.
+	LastCheckAt         *time.Time `json:"last_check_at,omitempty"`
+	LastCheckOK         *bool      `json:"last_check_ok,omitempty"`
+	LastCheckError      string     `json:"last_check_error"`
+	LastSuccessAt       *time.Time `json:"last_success_at,omitempty"`
+	ConsecutiveFailures int        `json:"consecutive_failures"`
 }
 
 // CreateSystemUpdateInput is the input for inserting a newly-detected update.
@@ -70,6 +78,38 @@ type SystemUpdatesStore struct {
 // NewSystemUpdatesStore creates a new SystemUpdatesStore.
 func NewSystemUpdatesStore(pool *pgxpool.Pool) *SystemUpdatesStore {
 	return &SystemUpdatesStore{pool: pool}
+}
+
+// AppliedMigrations returns every migration filename recorded in
+// schema_migrations, sorted.
+//
+// The updater uses this to tell two very different rollbacks apart. Reverting
+// IMAGE_TAG and recreating the containers restores the code, but nothing
+// restores the schema: cmd/api runs migrations on startup (RUN_MIGRATIONS),
+// so by the time a health check fails the database may already have moved
+// forward. Comparing this set before and after is the difference between "the
+// rollback returned the system to a known-good state" and "the old code is now
+// running against a newer schema", and those must not both be recorded as
+// success.
+func (s *SystemUpdatesStore) AppliedMigrations(ctx context.Context) ([]string, error) {
+	rows, err := s.pool.Query(ctx, `SELECT version FROM schema_migrations ORDER BY version`)
+	if err != nil {
+		return nil, fmt.Errorf("query schema_migrations: %w", err)
+	}
+	defer rows.Close()
+
+	var versions []string
+	for rows.Next() {
+		var v string
+		if err := rows.Scan(&v); err != nil {
+			return nil, fmt.Errorf("scan migration version: %w", err)
+		}
+		versions = append(versions, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate schema_migrations: %w", err)
+	}
+	return versions, nil
 }
 
 // List returns all updates, newest detected_at first.
@@ -306,16 +346,51 @@ func (s *SystemUpdatesStore) GetSettings(ctx context.Context) (SystemUpdateSetti
 		SELECT auto_apply_patch, auto_apply_minor,
 		       to_char(maintenance_window_start, 'HH24:MI'),
 		       to_char(maintenance_window_end,   'HH24:MI'),
-		       notify_email, channel, updated_at
+		       notify_email, channel, updated_at,
+		       last_check_at, last_check_ok, last_check_error,
+		       last_success_at, consecutive_failures
 		FROM system_update_settings WHERE id = 1
 	`).Scan(&st.AutoApplyPatch, &st.AutoApplyMinor, &startStr, &endStr,
-		&st.NotifyEmail, &st.Channel, &st.UpdatedAt)
+		&st.NotifyEmail, &st.Channel, &st.UpdatedAt,
+		&st.LastCheckAt, &st.LastCheckOK, &st.LastCheckError,
+		&st.LastSuccessAt, &st.ConsecutiveFailures)
 	if err != nil {
 		return st, err
 	}
 	st.MaintenanceWindowStart = startStr
 	st.MaintenanceWindowEnd = endStr
 	return st, nil
+}
+
+// RecordCheckResult stores the outcome of one update check.
+//
+// The poller previously reported failures only to a log line and a counter.
+// That is enough to graph and not enough to notice: the console showed "no
+// updates available", which is what a healthy system with nothing to install
+// also shows. On the verification host the two were indistinguishable for
+// forty days while the token behind every check had expired.
+//
+// Persisting the outcome is what lets "nothing to install" and "we have not
+// been able to ask" render differently.
+func (s *SystemUpdatesStore) RecordCheckResult(ctx context.Context, ok bool, checkErr string) error {
+	if len(checkErr) > 1000 {
+		checkErr = checkErr[:1000]
+	}
+	// consecutive_failures resets on success and accumulates otherwise, in one
+	// statement so concurrent updaters cannot interleave a read and a write.
+	_, err := s.pool.Exec(ctx, `
+		UPDATE system_update_settings
+		SET last_check_at        = NOW(),
+		    last_check_ok        = $1,
+		    last_check_error     = $2,
+		    last_success_at      = CASE WHEN $1 THEN NOW() ELSE last_success_at END,
+		    consecutive_failures = CASE WHEN $1 THEN 0 ELSE consecutive_failures + 1 END
+		WHERE id = 1
+	`, ok, checkErr)
+	if err != nil {
+		return fmt.Errorf("record check result: %w", err)
+	}
+	return nil
 }
 
 // UpdateSettings replaces all settings fields. Validation (channel value,

@@ -33,7 +33,7 @@ import (
 // ものではないからです。増える方向にだけ落とします。
 
 // 実測値。減らしたらここも下げます（下回っても落ちます）。
-const testOnlyCeiling = 29
+const testOnlyCeiling = 28
 
 // テストからしか呼ばれないもの。**1件ずつ、写しか不通かを書きます。**
 //
@@ -98,10 +98,6 @@ var testOnlyReasons = map[string]string{
 		"同じく食い違います",
 	"SessionStore.RevokeByID": "写し: session_handler.go:195/223。同上",
 
-	"SuppressionRuleStore.IncrementCount": "写し: SuppressionStore.IncrHitCount " +
-		"(suppressions.go:129) が本番の実装で、alert_pipeline.go:933 が呼びます。" +
-		"**同じ列を触る store が2つあります**",
-
 	"TenantRoleStore.HasRole": "写し: router.go:5258 が tenant_roles を直接引きます",
 
 	"AgentStore.ProtectionModeSummary": "写し: agents_handler.go:1189 が同じ内訳を" +
@@ -145,6 +141,13 @@ func testOnlyProblems(measured map[string]storeSym,
 // 消したりすれば理由が古くなって落ちます。**どちらの向きにも落ちること**が
 // 要点で、数字だけだと片方向にしか効きません。
 var neverCalledReasons = map[string]string{
+	// **上流がテストごと外しました**（#74 の同期。24 本のテストが消えています）。
+	// 呼び出し側は元から無く、テストだけが到達点でした。そのテストが消えた
+	// ので、いまは誰からも呼ばれません。**消すか繋ぐかの判断が要ります** ——
+	// この 2 つは system_updates の機能そのもので、機能を落とす判断は
+	// 受け側で勝手にできません。
+	"SystemUpdatesStore.AppliedMigrations": "適用済み migration の一覧。呼び出し側がおらず、到達していたテストは #74 の同期で消えました",
+	"SystemUpdatesStore.RecordCheckResult": "更新確認の結果の記録。同上",
 	"AlertAssignRuleStore.FindMatch": "アラートの自動割り当て規則の照合。" +
 		"呼び出し側がいません。**この関数の挙動については、" +
 		"answered_with_a_value_test.go と skipped_row_test.go の理由リストが" +

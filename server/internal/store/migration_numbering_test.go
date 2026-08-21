@@ -33,10 +33,8 @@ import (
 // on the second pass). Renaming them would break every existing deployment to
 // tidy up a naming convention. Not worth it; stopping the growth is.
 var grandfatheredDuplicateMigrationNumbers = map[string]bool{
-	"029": true, "200": true, "315": true, "322": true, "323": true,
-	"324": true, "325": true, "326": true, "327": true, "328": true,
-	"329": true, "330": true, "331": true, "340": true, "357": true,
-	"365": true,
+	"029": true, "200": true, "315": true, "324": true, "325": true,
+	"329": true, "357": true,
 }
 
 var migrationPrefixRe = regexp.MustCompile(`^(\d+)_`)

@@ -1,3 +1,19 @@
+--
+-- ─── 公開版向けの差し替え（scripts/public-snapshot/overlay） ──────────────
+--
+-- 本流の同名ファイルは、スキーマ変更のあとに検知ルールの INSERT が続く。
+-- 公開版は検知コンテンツをパックで配るので、**スキーマ変更だけを残し、
+-- INSERT を落とした版**がこれ。
+--
+-- ファイルごと除外できないのは、events_event_type_check の付け替えなど
+-- スキーマ側が公開版でも必要なため。番号とファイル名は本流と同一にする
+-- （schema_migrations は version としてファイル名を持つので、名前を変えると
+-- 適用済みの環境で再実行される）。
+--
+-- 落としたルールは rulepacks/ に入っている。公開版に同梱されるのは
+-- baseline.json のみ。
+--
+
 -- Migration 322: allow 'host_integrity' in events.event_type, and add the Sigma
 -- rules + a CommandLine gap-fill that ride on it.
 --
@@ -77,116 +93,3 @@ END
 $migration$;
 
 -- ── T1547.006 : カーネルモジュールロード(syscallレベル) ──────────────
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'Linux Kernel Module Load (syscall-level)', 'sigma', ARRAY['linux'], 8,
-$$
-title: Linux Kernel Module Load (syscall-level)
-description: Detects a process calling init_module/finit_module directly (eBPF tracepoint), independent of which binary made the call. Complements "Kernel Module Loading (Linux)" (CommandLine match on insmod/modprobe), which a custom or renamed binary calling the syscall directly bypasses (T1547.006).
-status: stable
-level: high
-tags:
-  - attack.t1547.006
-  - attack.persistence
-  - attack.privilege_escalation
-logsource:
-  product: linux
-  category: host_integrity
-detection:
-  selection:
-    action: kernel_module_load
-  condition: selection
-falsepositives:
-  - Legitimate driver/module installation by package managers or administrators
-$$,
-'community', ARRAY['T1547.006'],
-'Linux syscall-level gap-fill: kernel module load bypassing insmod/modprobe CommandLine rules', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'Linux Kernel Module Load (syscall-level)');
-
--- ── T1611 : namespace操作/コンテナ・ホストエスケープ(syscallレベル) ──
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'Linux Namespace Manipulation (syscall-level)', 'sigma', ARRAY['linux'], 7,
-$$
-title: Linux Namespace Manipulation (syscall-level)
-description: Detects a process calling unshare/setns directly (eBPF tracepoint), independent of which binary made the call. Complements "Container Escape to Host" (CommandLine match on nsenter/--privileged), which a custom or renamed binary calling the syscall directly bypasses (T1611). Container-runtime processes (runc/containerd-shim/crun/conmon) are filtered at the agent source — every alert here is from a non-runtime process.
-status: stable
-level: high
-tags:
-  - attack.t1611
-  - attack.privilege_escalation
-logsource:
-  product: linux
-  category: host_integrity
-detection:
-  selection:
-    action: namespace_manipulation
-  condition: selection
-falsepositives:
-  - Container tooling not on the source-side runtime allowlist (review and extend the allowlist rather than this rule)
-$$,
-'community', ARRAY['T1611'],
-'Linux syscall-level gap-fill: namespace manipulation bypassing nsenter CommandLine rules', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'Linux Namespace Manipulation (syscall-level)');
-
--- ── T1548.001 : capability変更(syscallレベル) ──────────────────────
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'Linux Capability Set (syscall-level)', 'sigma', ARRAY['linux'], 6,
-$$
-title: Linux Capability Set (syscall-level)
-description: Detects a process calling capset directly (eBPF tracepoint) to change its own or a target thread's capability set, independent of which binary made the call. Complements the chmod-+s setuid rule (migration 309), which only covers persistent file-based privilege escalation, not in-process capability grants (T1548.001). Both dropping and raising capabilities go through this syscall; severity is kept below auto-isolate since container runtimes legitimately drop capabilities outside the source-side runtime allowlist in some configurations.
-status: stable
-level: medium
-tags:
-  - attack.t1548.001
-  - attack.privilege_escalation
-logsource:
-  product: linux
-  category: host_integrity
-detection:
-  selection:
-    action: capability_set
-  condition: selection
-falsepositives:
-  - Container/sandbox tooling dropping capabilities at startup outside the source-side runtime allowlist
-$$,
-'community', ARRAY['T1548.001'],
-'Linux syscall-level gap-fill: capability changes bypassing chmod +s CommandLine rule', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'Linux Capability Set (syscall-level)');
-
--- ── T1548.001 : setcap によるファイルcapability付与(CLIレベル、既存の
---   chmod +s ルール(migration 309)は setuid ビットのみでファイルcapabilityは
---   未検知だったギャップを埋める) ──────────────────────────────────
-INSERT INTO rules (name, type, platform, severity, content, source, mitre_tags, description, enabled)
-SELECT 'Linux File Capability Grant (setcap)', 'sigma', ARRAY['linux'], 6,
-$$
-title: Linux File Capability Grant (setcap)
-description: Detects granting a file capability via setcap (e.g. cap_setuid, cap_net_raw, cap_sys_admin) — a persistence/privilege-escalation setup equivalent to a setuid binary but implemented via file capabilities instead of the setuid bit, and not covered by the existing chmod-+s setuid rule (T1548.001).
-status: stable
-level: high
-tags:
-  - attack.t1548.001
-  - attack.privilege_escalation
-  - attack.persistence
-logsource:
-  product: linux
-  category: process_creation
-detection:
-  setcap:
-    CommandLine|contains: setcap
-  grant:
-    CommandLine|contains:
-      - cap_setuid
-      - cap_setgid
-      - cap_net_raw
-      - cap_net_admin
-      - cap_sys_admin
-      - cap_sys_ptrace
-      - cap_dac_override
-      - '+ep'
-      - '=ep'
-  condition: setcap and grant
-falsepositives:
-  - Package installation scripts granting capabilities to legitimate helpers (e.g. ping, tcpdump)
-$$,
-'community', ARRAY['T1548.001'],
-'Linux measurement gap-fill: setcap file-capability grant (chmod +s counterpart)', true
-WHERE NOT EXISTS (SELECT 1 FROM rules WHERE name = 'Linux File Capability Grant (setcap)');

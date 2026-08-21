@@ -171,7 +171,7 @@ Kizashi は、1人のアナリストから大規模SOCまで幅広い運用体�
 | バックアップソフトの大量ファイル操作 | rule_name = "mass_file_modification" + hostname = バックアップサーバー |
 | 監視ツール自体の検知 | rule_name に "network_scan" + hostname = 監視サーバー |
 
-> **設定場所:** 管理画面 → アラート抑制（`/admin/suppressions`）
+> **設定場所:** 管理画面 → アラート抑制（`/suppressions`）
 
 #### 通知設定
 

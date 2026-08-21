@@ -1057,7 +1057,7 @@ export default function ThreatHuntingPage() {
                         contentStyle={{ background: '#111827', border: '1px solid #1e2d42', borderRadius: 8, fontSize: 12 }}
                         labelStyle={{ color: '#e2e8f4' }}
                         itemStyle={{ color: '#3b82f6' }}
-                        formatter={(v) => [`${v} 件`, 'イベント数']}
+                        formatter={(v: number) => [`${v} 件`, 'イベント数']}
                       />
                       <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} fill="url(#areaGrad)" />
                     </AreaChart>

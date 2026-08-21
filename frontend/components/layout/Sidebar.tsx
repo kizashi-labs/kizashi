@@ -256,7 +256,6 @@ const adminNavGroups: NavGroup[] = [
     items: [
       { href: '/admin/sigma-rules',      label: 'Sigmaルール',          icon: FileSearch },
       { href: '/admin/yara-rules',       label: 'YARAルール',           icon: FileCode,   feature: 'yara' },
-      { href: '/admin/alert-suppression', label: 'アラート抑制',        icon: ShieldOff },
       { href: '/admin/ml-analytics',     label: 'ML分析',               icon: Brain,      feature: 'ml_detection' },
       { href: '/admin/detection-studio', label: '検出ルールStudio',     icon: Code },
       { href: '/admin/control-testing',  label: 'コントロールテスト',   icon: FlaskConical },
@@ -413,7 +412,6 @@ const adminNavGroups: NavGroup[] = [
       { href: '/admin/assign-rules',       label: '自動割り当て',         icon: GitMerge },
       { href: '/admin/escalation-rules',   label: 'エスカレーション',     icon: TrendingUp },
       { href: '/admin/custom-fields',      label: 'カスタムフィールド',   icon: Layers },
-      { href: '/admin/suppression-rules',  label: 'アラート抑制ルール',   icon: ShieldOff },
       { href: '/admin/honeypots',          label: 'ハニーポット',          icon: Bug,       feature: 'deception' },
       { href: '/admin/deception',          label: 'デセプション技術',     icon: Crosshair, feature: 'deception' },
       { href: '/admin/honeynet',           label: 'ハニーネット',          icon: Bug,       feature: 'deception' },

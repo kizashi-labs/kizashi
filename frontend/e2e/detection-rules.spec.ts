@@ -56,10 +56,14 @@ test.describe('相関ルール', () => {
 })
 
 // ─── アラート抑制ルール ────────────────────────────────────────────────────────
+//
+// 宛先は実働の /suppressions。**旧 /admin/alert-suppression を見ていたが、
+// あの画面から作った抑制は一度も適用されていなかった**（保存先が検知側の
+// 読めない形式だった）。画面ごと撤去したので、検査も実働側へ移した。
 
 test.describe('アラート抑制ルール', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/admin/alert-suppression')
+    await page.goto('/suppressions')
     await page.waitForLoadState('domcontentloaded', { timeout: 15_000 })
   })
 

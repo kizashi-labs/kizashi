@@ -7,6 +7,7 @@
 server/internal/api/handlers/mdm_integration_handler.go
 server/internal/api/handlers/mobile_compliance_scanner.go
 server/internal/api/handlers/system_updates_handler.go
+server/internal/api/handlers/table_probe_test.go
 server/internal/billing/handler.go
 server/internal/ldap/connector.go
 server/internal/scheduler/billing_grace_worker.go

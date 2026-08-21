@@ -174,10 +174,9 @@ type Handlers struct {
 
 	CorrelationEngine *handlers.CorrelationEngineHandler
 
-	SoftwareDiff    *handlers.SoftwareDiffHandler
-	SuppressionRule *handlers.SuppressionRuleHandler
-	EDRPolicy       *handlers.EDRPolicyHandler
-	AuditSign       *handlers.AuditSignHandler
+	SoftwareDiff *handlers.SoftwareDiffHandler
+	EDRPolicy    *handlers.EDRPolicyHandler
+	AuditSign    *handlers.AuditSignHandler
 
 	// Task #372: Incident Playbook Management
 	IncidentPlaybook *handlers.IncidentPlaybookHandler
@@ -505,7 +504,6 @@ type Handlers struct {
 	SigmaRules *handlers.SigmaRulesHandler
 
 	// Migration 180: Alert Suppression Engine
-	SuppressionEngine *handlers.SuppressionEngineHandler
 
 	// Migration 181: SIEM Webhook Connector
 	SIEMWebhook *handlers.SIEMWebhookHandler
@@ -1144,6 +1142,7 @@ func (s *Server) registerRoutes() {
 		{
 			sup.GET("", s.handlers.suppressions.List)
 			sup.POST("", s.handlers.suppressions.Create)
+			sup.PUT("/:id", s.handlers.suppressions.Update)
 			sup.DELETE("/:id", s.handlers.suppressions.Delete)
 			sup.PUT("/:id/toggle", s.handlers.suppressions.Toggle)
 			sup.GET("/candidates", s.handlers.suppressions.Candidates) // 抑制候補提示
@@ -2668,20 +2667,6 @@ func (s *Server) registerRoutes() {
 	if s.handlers.EventStream != nil {
 		v1 := s.router.Group("/api/v1")
 		v1.GET("/stream", s.handlers.EventStream.Stream)
-	}
-
-	// Alert Suppression Rules (admin only)
-	if s.handlers.SuppressionRule != nil {
-		sr := protected.Group("/admin/suppression-rules")
-		sr.Use(adminMiddleware())
-		{
-			sr.GET("", s.handlers.SuppressionRule.List)
-			sr.POST("", s.handlers.SuppressionRule.Create)
-			sr.GET("/:id", s.handlers.SuppressionRule.Get)
-			sr.PUT("/:id", s.handlers.SuppressionRule.Update)
-			sr.DELETE("/:id", s.handlers.SuppressionRule.Delete)
-			sr.POST("/:id/toggle", s.handlers.SuppressionRule.Toggle)
-		}
 	}
 
 	// EDR Policy Management (admin only)
@@ -4240,20 +4225,6 @@ func (s *Server) registerRoutes() {
 	}
 
 	// Migration 180: Alert Suppression Engine (admin only)
-	if s.handlers.SuppressionEngine != nil {
-		se := protected.Group("/admin/suppression")
-		se.Use(adminMiddleware())
-		{
-			se.GET("/rules", s.handlers.SuppressionEngine.ListRules)
-			se.POST("/rules", s.handlers.SuppressionEngine.CreateRule)
-			se.PUT("/rules/:id", s.handlers.SuppressionEngine.UpdateRule)
-			se.DELETE("/rules/:id", s.handlers.SuppressionEngine.DeleteRule)
-			se.PUT("/rules/:id/toggle", s.handlers.SuppressionEngine.ToggleRule)
-			se.POST("/test", s.handlers.SuppressionEngine.TestAlert)
-			se.GET("/stats", s.handlers.SuppressionEngine.GetStats)
-		}
-	}
-
 	// Migration 181: SIEM Webhook Connector (Professional plan required, admin only)
 	if s.handlers.SIEMWebhook != nil {
 		sw := protected.Group("/admin/siem")

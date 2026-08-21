@@ -13,18 +13,39 @@ import { PageDataUnavailable } from '@/components/PageDataUnavailable'
 import { PageSaveFailed } from '@/components/PageSaveFailed'
 
 // ── Types ────────────────────────────────────────────────────────────────────
+//
+// この画面は長らく実在しない契約 (field / match_type / pattern / notes /
+// enabled) で書かれていた。サーバが返すのは conditions / description /
+// is_active なので、一覧では条件が空欄のまま並び、作成は名前だけが保存されて
+// **条件ゼロのルール**になる。条件ゼロは検知側 (ClassifySuppression) が
+// catch-all として適用を拒むので、**画面から作った抑制は一件も効かない。**
+// 編集に至っては PUT のルート自体が無く 404 だった。
+//
+// 以下の型は server/internal/store/suppressions.go と
+// server/internal/detection/suppression_matcher.go に合わせてある。
+
+interface SuppressionConditions {
+  rule_name?: string
+  hostname?: string
+  agent_id?: string
+  mitre_technique?: string
+  severity_max?: number
+  command_line_contains?: string
+  parent_process?: string
+}
 
 interface SuppressionRule {
   id: string
   name: string
-  pattern?: string
-  field?: string
-  match_type?: string
-  enabled: boolean
+  description?: string
+  conditions: SuppressionConditions
+  duration_h: number
+  is_active: boolean
+  hit_count: number
+  created_by_name?: string
   expires_at?: string
-  hit_count?: number
   created_at: string
-  notes?: string
+  updated_at: string
 }
 
 interface SuppressionResponse {
@@ -33,29 +54,62 @@ interface SuppressionResponse {
 
 type FilterStatus = 'all' | 'enabled' | 'disabled'
 
-const FIELD_OPTIONS = [
-  { value: 'title',     label: 'タイトル' },
-  { value: 'agent_id',  label: 'エージェントID' },
-  { value: 'rule_name', label: 'ルール名' },
-  { value: 'severity',  label: '重大度' },
-] as const
-
-const MATCH_TYPE_OPTIONS = [
-  { value: 'exact',    label: '完全一致' },
-  { value: 'contains', label: '部分一致' },
-  { value: 'regex',    label: '正規表現' },
-  { value: 'wildcard', label: 'ワイルドカード' },
-] as const
+// 条件ごとに一致の仕方が違う (SuppressionMatcher.matches)。ここの説明は
+// その実装そのままで、「部分一致のつもりが後方一致だった」で外すのを防ぐ。
+const CONDITION_FIELDS = [
+  {
+    key: 'rule_name' as const,
+    label: '検知ルール名',
+    hint: '部分一致・大文字小文字を区別しない',
+    placeholder: '例: Data Exfiltration',
+  },
+  {
+    key: 'hostname' as const,
+    label: 'ホスト名',
+    hint: '部分一致・大文字小文字を区別しない',
+    placeholder: '例: ci-runner-',
+  },
+  {
+    key: 'agent_id' as const,
+    label: 'エージェントID',
+    hint: '完全一致',
+    placeholder: '例: 3f2a9c1e-…',
+  },
+  {
+    key: 'mitre_technique' as const,
+    label: 'MITRE 技法',
+    hint: '前方一致。T1059 はサブ技法 T1059.001 にも当たる',
+    placeholder: '例: T1059',
+  },
+  {
+    key: 'command_line_contains' as const,
+    label: 'コマンドライン',
+    hint: '部分一致。8文字未満の断片は絞り込みとみなされない',
+    placeholder: '例: /opt/backup/nightly.sh',
+  },
+  {
+    key: 'parent_process' as const,
+    label: '親プロセス',
+    hint: '後方一致。パスを知らなくても実行ファイル名だけで書ける',
+    placeholder: '例: cron',
+  },
+]
 
 const EMPTY_FORM = {
   name: '',
-  field: 'title' as string,
-  match_type: 'contains' as string,
-  pattern: '',
+  description: '',
+  rule_name: '',
+  hostname: '',
+  agent_id: '',
+  mitre_technique: '',
+  command_line_contains: '',
+  parent_process: '',
+  severity_max: '',
   expires_at: '',
-  notes: '',
-  enabled: true,
+  is_active: true,
 }
+
+type FormState = typeof EMPTY_FORM
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -71,93 +125,106 @@ function formatExpiry(expiresAt?: string): string {
   return d.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
-function fieldLabel(field?: string): string {
-  return FIELD_OPTIONS.find(f => f.value === field)?.label ?? field ?? '—'
-}
-
-function matchTypeLabel(mt?: string): string {
-  return MATCH_TYPE_OPTIONS.find(m => m.value === mt)?.label ?? mt ?? '—'
-}
-
-// Client-side pattern preview — estimates how many rules could match a pattern
-// by checking if pattern is non-empty (actual match count requires server data)
-function previewMatchCount(
-  pattern: string,
-  matchType: string,
-  allRules: SuppressionRule[],
-): number {
-  if (!pattern) return 0
-  // Count existing rules whose own pattern would overlap (simple heuristic)
-  return allRules.filter(r => {
-    if (!r.pattern) return false
-    try {
-      if (matchType === 'exact') return r.pattern === pattern
-      if (matchType === 'contains') return r.pattern.toLowerCase().includes(pattern.toLowerCase())
-      if (matchType === 'regex') return new RegExp(pattern, 'i').test(r.pattern)
-      if (matchType === 'wildcard') {
-        const re = new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i')
-        return re.test(r.pattern)
-      }
-    } catch { /* invalid regex */ }
-    return false
-  }).length
-}
-
-// ── Field Badge ───────────────────────────────────────────────────────────────
-
-function FieldBadge({ field }: { field?: string }) {
-  const colours: Record<string, string> = {
-    title:     'bg-blue-900/50 text-blue-300 border-blue-700/40',
-    agent_id:  'bg-purple-900/50 text-purple-300 border-purple-700/40',
-    rule_name: 'bg-teal-900/50 text-teal-300 border-teal-700/40',
-    severity:  'bg-orange-900/50 text-orange-300 border-orange-700/40',
+// 検知側 (ClassifySuppression) は条件がひとつも無いルールを catch-all として
+// **適用しない**。保存自体は通るので、画面で言わないと「保存したのに効かない」
+// が黙って起きる。
+function conditionCount(c: SuppressionConditions): number {
+  let n = 0
+  for (const f of CONDITION_FIELDS) {
+    if ((c[f.key] ?? '').toString().trim() !== '') n++
   }
-  const cls = colours[field ?? ''] ?? 'bg-gray-700/50 text-gray-300 border-gray-600/40'
-  return (
-    <span className={`text-xs px-2 py-0.5 rounded-sm border ${cls}`}>
-      {fieldLabel(field)}
-    </span>
-  )
+  if ((c.severity_max ?? 0) > 0) n++
+  return n
 }
 
-// ── Match Type Badge ──────────────────────────────────────────────────────────
-
-function MatchTypeBadge({ matchType }: { matchType?: string }) {
-  const colours: Record<string, string> = {
-    exact:    'bg-gray-700/60 text-gray-300',
-    contains: 'bg-gray-700/60 text-gray-300',
-    regex:    'bg-yellow-900/40 text-yellow-300',
-    wildcard: 'bg-gray-700/60 text-gray-300',
+function formToConditions(form: FormState): SuppressionConditions {
+  const c: SuppressionConditions = {}
+  for (const f of CONDITION_FIELDS) {
+    const v = form[f.key].trim()
+    if (v) c[f.key] = v
   }
-  const cls = colours[matchType ?? ''] ?? 'bg-gray-700/60 text-gray-300'
+  const sev = parseInt(form.severity_max, 10)
+  if (!Number.isNaN(sev) && sev > 0) c.severity_max = sev
+  return c
+}
+
+function ruleToForm(rule: SuppressionRule): FormState {
+  const c = rule.conditions ?? {}
+  return {
+    name: rule.name,
+    description: rule.description ?? '',
+    rule_name: c.rule_name ?? '',
+    hostname: c.hostname ?? '',
+    agent_id: c.agent_id ?? '',
+    mitre_technique: c.mitre_technique ?? '',
+    command_line_contains: c.command_line_contains ?? '',
+    parent_process: c.parent_process ?? '',
+    severity_max: c.severity_max ? String(c.severity_max) : '',
+    expires_at: rule.expires_at
+      ? new Date(rule.expires_at).toISOString().slice(0, 16)
+      : '',
+    is_active: rule.is_active,
+  }
+}
+
+// ── Condition badges ──────────────────────────────────────────────────────────
+
+function ConditionBadges({ conditions }: { conditions: SuppressionConditions }) {
+  const c = conditions ?? {}
+  const items: { label: string; value: string }[] = []
+  for (const f of CONDITION_FIELDS) {
+    const v = (c[f.key] ?? '').toString()
+    if (v) items.push({ label: f.label, value: v })
+  }
+  if ((c.severity_max ?? 0) > 0) {
+    items.push({ label: '重大度', value: `${c.severity_max} 以下` })
+  }
+
+  if (items.length === 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-red-400">
+        <AlertTriangle size={11} />
+        条件なし（適用されません）
+      </span>
+    )
+  }
+
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-sm font-mono ${cls}`}>
-      {matchTypeLabel(matchType)}
-    </span>
+    <div className="flex flex-wrap gap-1">
+      {items.map(it => (
+        <span
+          key={it.label}
+          className="text-xs px-2 py-0.5 rounded-sm border bg-gray-700/50 text-gray-300 border-gray-600/40"
+          title={`${it.label}: ${it.value}`}
+        >
+          <span className="text-gray-500">{it.label}</span>{' '}
+          <span className="font-mono">{it.value}</span>
+        </span>
+      ))}
+    </div>
   )
 }
 
 // ── Rule Form ─────────────────────────────────────────────────────────────────
 
 interface RuleFormProps {
-  initial?: typeof EMPTY_FORM & { id?: string }
-  allRules: SuppressionRule[]
-  onSubmit: (data: typeof EMPTY_FORM) => void
+  initial?: FormState
+  onSubmit: (data: FormState) => void
   onCancel: () => void
   isPending: boolean
   isError: boolean
   editMode?: boolean
 }
 
-function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, editMode }: RuleFormProps) {
-  const [form, setForm] = useState<typeof EMPTY_FORM>(initial ?? EMPTY_FORM)
+function RuleForm({ initial, onSubmit, onCancel, isPending, isError, editMode }: RuleFormProps) {
+  const [form, setForm] = useState<FormState>(initial ?? EMPTY_FORM)
 
-  const set = <K extends keyof typeof EMPTY_FORM>(k: K, v: (typeof EMPTY_FORM)[K]) =>
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm(f => ({ ...f, [k]: v }))
 
-  const previewCount = useMemo(
-    () => previewMatchCount(form.pattern, form.match_type, allRules),
-    [form.pattern, form.match_type, allRules],
+  const filledConditions = useMemo(
+    () => conditionCount(formToConditions(form)),
+    [form],
   )
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -185,64 +252,62 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
             required
             value={form.name}
             onChange={e => set('name', e.target.value)}
-            placeholder="例: 定期スキャン除外"
+            placeholder="例: 定期バックアップの誤検知を抑制"
             className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
           />
         </div>
 
-        {/* Row 2: field + match_type + pattern */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">対象フィールド</label>
-            <select
-              value={form.field}
-              onChange={e => set('field', e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-yellow-500 text-white"
-            >
-              {FIELD_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+        {/* Conditions */}
+        <div>
+          <div className="flex items-baseline justify-between mb-2">
+            <label className="block text-xs text-gray-400">抑制条件</label>
+            <span className="text-xs text-gray-500">
+              書いた条件すべてに一致したアラートを抑制します（AND）
+            </span>
           </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">マッチタイプ</label>
-            <select
-              value={form.match_type}
-              onChange={e => set('match_type', e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-yellow-500 text-white"
-            >
-              {MATCH_TYPE_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">パターン *</label>
-            <input
-              required
-              value={form.pattern}
-              onChange={e => set('pattern', e.target.value)}
-              placeholder={
-                form.match_type === 'regex' ? '例: ^mimikatz.*'
-                : form.match_type === 'wildcard' ? '例: *scan*'
-                : '例: mimikatz'
-              }
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {CONDITION_FIELDS.map(f => (
+              <div key={f.key}>
+                <label className="block text-xs text-gray-400 mb-1">{f.label}</label>
+                <input
+                  value={form[f.key]}
+                  onChange={e => set(f.key, e.target.value)}
+                  placeholder={f.placeholder}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
+                />
+                <p className="text-xs text-gray-600 mt-1">{f.hint}</p>
+              </div>
+            ))}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">重大度の上限</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={form.severity_max}
+                onChange={e => set('severity_max', e.target.value)}
+                placeholder="例: 3"
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm font-mono focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600"
+              />
+              <p className="text-xs text-gray-600 mt-1">
+                この値以下の重大度だけを抑制。10 は上限そのものなので何も絞れません
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Preview */}
-        {form.pattern && (
-          <div className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-gray-900/60 border border-gray-700 text-gray-300">
-            <AlertTriangle size={14} className="text-yellow-400 shrink-0" />
-            このルールは既存の
-            <span className="font-bold text-yellow-300">{previewCount}</span>
-            件のルールパターンに一致します
+        {/* 条件ゼロの警告 */}
+        {filledConditions === 0 && (
+          <div className="flex items-start gap-2 text-sm px-3 py-2 rounded-lg bg-red-900/20 border border-red-800/50 text-red-300">
+            <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
+            <span>
+              条件がひとつも書かれていません。このルールは保存できますが、
+              全アラートを消してしまうため検知エンジンは<strong>適用しません</strong>。
+            </span>
           </div>
         )}
 
-        {/* Row 3: expires_at + enabled */}
+        {/* Row 3: expires_at + is_active */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-gray-400 mb-1">有効期限 (省略で無期限)</label>
@@ -257,28 +322,28 @@ function RuleForm({ initial, allRules, onSubmit, onCancel, isPending, isError, e
             <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-300">
               <div
                 role="switch"
-                aria-checked={form.enabled}
-                onClick={() => set('enabled', !form.enabled)}
+                aria-checked={form.is_active}
+                onClick={() => set('is_active', !form.is_active)}
                 className={`w-10 h-5 rounded-full transition-colors cursor-pointer ${
-                  form.enabled ? 'bg-yellow-500' : 'bg-gray-600'
+                  form.is_active ? 'bg-yellow-500' : 'bg-gray-600'
                 }`}
               >
                 <div className={`w-4 h-4 rounded-full bg-[#e2e8f4] mt-0.5 transition-transform shadow-sm ${
-                  form.enabled ? 'translate-x-5.5' : 'translate-x-0.5'
+                  form.is_active ? 'translate-x-5.5' : 'translate-x-0.5'
                 }`} />
               </div>
-              {form.enabled ? 'ルール有効' : 'ルール無効'}
+              {form.is_active ? 'ルール有効' : 'ルール無効'}
             </label>
           </div>
         </div>
 
-        {/* notes */}
+        {/* description */}
         <div>
           <label className="block text-xs text-gray-400 mb-1">メモ (省略可)</label>
           <textarea
             rows={2}
-            value={form.notes}
-            onChange={e => set('notes', e.target.value)}
+            value={form.description}
+            onChange={e => set('description', e.target.value)}
             placeholder="このルールの目的や背景を記入..."
             className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-yellow-500 text-white placeholder-gray-600 resize-none"
           />
@@ -341,6 +406,7 @@ export default function SuppressionsPage() {
     },
   })
 
+  // conditions は丸ごと置き換わる (PUT)。編集後の条件をすべて送ること。
   const updateMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: object }) =>
       apiFetch(`/api/v1/suppressions/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
@@ -356,31 +422,38 @@ export default function SuppressionsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['suppressions'] }),
   })
 
-  // 有効/無効は PUT /suppressions/:id/toggle です。/toggle の無い
-  // PUT /suppressions/:id はルートが無く、切り替えは効いていませんでした。
+  // 有効/無効は PUT /suppressions/:id/toggle。サーバが読むキーは is_active で、
+  // enabled を送っても bool のゼロ値 false になり、**どちらに倒しても無効化**
+  // される。
   const toggleMutation = useMutation({
-    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
-      apiFetch(`/api/v1/suppressions/${id}/toggle`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiFetch(`/api/v1/suppressions/${id}/toggle`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_active: isActive }),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['suppressions'] }),
   })
 
   // ── Stats ──────────────────────────────────────────────────────
 
   const totalRules = allRules.length
-  const enabledCount = allRules.filter(r => r.enabled).length
+  const enabledCount = allRules.filter(r => r.is_active).length
   const totalSuppressed = allRules.reduce((acc, r) => acc + (r.hit_count ?? 0), 0)
 
   // ── Filtered view ──────────────────────────────────────────────
 
   const visibleRules = useMemo(() => {
     return allRules.filter(r => {
-      if (filterStatus === 'enabled' && !r.enabled) return false
-      if (filterStatus === 'disabled' && r.enabled) return false
+      if (filterStatus === 'enabled' && !r.is_active) return false
+      if (filterStatus === 'disabled' && r.is_active) return false
       if (search) {
         const q = search.toLowerCase()
-        const nameMatch = r.name.toLowerCase().includes(q)
-        const patternMatch = r.pattern?.toLowerCase().includes(q) ?? false
-        if (!nameMatch && !patternMatch) return false
+        const haystack = [
+          r.name,
+          r.description ?? '',
+          ...Object.values(r.conditions ?? {}).map(v => String(v)),
+        ].join(' ').toLowerCase()
+        if (!haystack.includes(q)) return false
       }
       return true
     })
@@ -388,31 +461,22 @@ export default function SuppressionsPage() {
 
   // ── Handlers ───────────────────────────────────────────────────
 
-  const handleCreate = (form: typeof EMPTY_FORM) => {
+  const buildBody = (form: FormState): Record<string, unknown> => {
     const body: Record<string, unknown> = {
       name: form.name,
-      field: form.field,
-      match_type: form.match_type,
-      pattern: form.pattern,
-      enabled: form.enabled,
+      description: form.description,
+      conditions: formToConditions(form),
+      is_active: form.is_active,
     }
     if (form.expires_at) body.expires_at = new Date(form.expires_at).toISOString()
-    if (form.notes) body.notes = form.notes
-    createMutation.mutate(body)
+    return body
   }
 
-  const handleUpdate = (form: typeof EMPTY_FORM) => {
+  const handleCreate = (form: FormState) => createMutation.mutate(buildBody(form))
+
+  const handleUpdate = (form: FormState) => {
     if (!editingRule) return
-    const body: Record<string, unknown> = {
-      name: form.name,
-      field: form.field,
-      match_type: form.match_type,
-      pattern: form.pattern,
-      enabled: form.enabled,
-    }
-    if (form.expires_at) body.expires_at = new Date(form.expires_at).toISOString()
-    if (form.notes) body.notes = form.notes
-    updateMutation.mutate({ id: editingRule.id, body })
+    updateMutation.mutate({ id: editingRule.id, body: buildBody(form) })
   }
 
   const handleEditOpen = (rule: SuppressionRule) => {
@@ -438,7 +502,7 @@ export default function SuppressionsPage() {
               <h1 className="text-2xl font-bold">アラート抑制ルール</h1>
             </div>
             <p className="text-sm text-gray-400 ml-11">
-              特定のパターンに一致するアラートを自動的に抑制します
+              条件に一致するアラートを検知エンジンの手前で抑制します
             </p>
           </div>
           {canWrite && (
@@ -499,7 +563,7 @@ export default function SuppressionsPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="名前・パターンで検索..."
+              placeholder="名前・条件で検索..."
               className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-700 rounded-lg bg-gray-800 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500"
             />
             {search && (
@@ -520,7 +584,6 @@ export default function SuppressionsPage() {
         {/* ── Create Form ───────────────────────────────────────── */}
         {showCreateForm && (
           <RuleForm
-            allRules={allRules}
             onSubmit={handleCreate}
             onCancel={() => setShowCreateForm(false)}
             isPending={createMutation.isPending}
@@ -531,19 +594,9 @@ export default function SuppressionsPage() {
         {/* ── Edit Form ─────────────────────────────────────────── */}
         {editingRule && (
           <RuleForm
+            key={editingRule.id}
             editMode
-            initial={{
-              name: editingRule.name,
-              field: editingRule.field ?? 'title',
-              match_type: editingRule.match_type ?? 'contains',
-              pattern: editingRule.pattern ?? '',
-              expires_at: editingRule.expires_at
-                ? new Date(editingRule.expires_at).toISOString().slice(0, 16)
-                : '',
-              notes: editingRule.notes ?? '',
-              enabled: editingRule.enabled,
-            }}
-            allRules={allRules.filter(r => r.id !== editingRule.id)}
+            initial={ruleToForm(editingRule)}
             onSubmit={handleUpdate}
             onCancel={handleEditClose}
             isPending={updateMutation.isPending}
@@ -564,14 +617,12 @@ export default function SuppressionsPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+          <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700 text-xs text-gray-400 uppercase tracking-wide">
                   <th className="text-left px-4 py-3 font-medium">名前</th>
-                  <th className="text-left px-4 py-3 font-medium">フィールド</th>
-                  <th className="text-left px-4 py-3 font-medium">タイプ</th>
-                  <th className="text-left px-4 py-3 font-medium">パターン</th>
+                  <th className="text-left px-4 py-3 font-medium">条件</th>
                   <th className="text-left px-4 py-3 font-medium">有効期限</th>
                   <th className="text-right px-4 py-3 font-medium">抑制数</th>
                   <th className="text-center px-4 py-3 font-medium">状態</th>
@@ -583,7 +634,7 @@ export default function SuppressionsPage() {
                   const expired = isExpired(rule.expires_at)
                   const rowClass = expired
                     ? 'opacity-50'
-                    : !rule.enabled
+                    : !rule.is_active
                     ? 'opacity-60'
                     : ''
 
@@ -593,7 +644,7 @@ export default function SuppressionsPage() {
                       className={`group hover:bg-gray-700/30 transition-colors ${rowClass}`}
                     >
                       {/* Name */}
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 align-top">
                         <div className="flex flex-col gap-0.5">
                           <span className={`font-medium ${expired ? 'line-through text-gray-500' : 'text-white'}`}>
                             {rule.name}
@@ -604,31 +655,19 @@ export default function SuppressionsPage() {
                               期限切れ
                             </span>
                           )}
-                          {rule.notes && !expired && (
-                            <span className="text-xs text-gray-500 truncate max-w-48">{rule.notes}</span>
+                          {rule.description && !expired && (
+                            <span className="text-xs text-gray-500 truncate max-w-48">{rule.description}</span>
                           )}
                         </div>
                       </td>
 
-                      {/* Field badge */}
-                      <td className="px-4 py-3">
-                        <FieldBadge field={rule.field} />
-                      </td>
-
-                      {/* Match type badge */}
-                      <td className="px-4 py-3">
-                        <MatchTypeBadge matchType={rule.match_type} />
-                      </td>
-
-                      {/* Pattern */}
-                      <td className="px-4 py-3 max-w-56">
-                        <code className="text-xs font-mono text-gray-300 bg-gray-900/60 px-2 py-0.5 rounded-sm truncate block max-w-full">
-                          {rule.pattern ?? '—'}
-                        </code>
+                      {/* Conditions */}
+                      <td className="px-4 py-3 align-top max-w-96">
+                        <ConditionBadges conditions={rule.conditions} />
                       </td>
 
                       {/* Expiry */}
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3 align-top whitespace-nowrap">
                         {rule.expires_at ? (
                           <span className={`flex items-center gap-1 text-xs ${expired ? 'text-red-400' : 'text-gray-400'}`}>
                             <Clock size={11} />
@@ -640,29 +679,29 @@ export default function SuppressionsPage() {
                       </td>
 
                       {/* Hit count */}
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 align-top text-right">
                         <span className="text-sm font-mono text-gray-300">
                           {(rule.hit_count ?? 0).toLocaleString()}
                         </span>
                       </td>
 
-                      {/* Enabled toggle */}
-                      <td className="px-4 py-3 text-center">
+                      {/* Active toggle */}
+                      <td className="px-4 py-3 align-top text-center">
                         {canWrite ? (
                           <button
-                            onClick={() => toggleMutation.mutate({ id: rule.id, enabled: !rule.enabled })}
+                            onClick={() => toggleMutation.mutate({ id: rule.id, isActive: !rule.is_active })}
                             disabled={toggleMutation.isPending}
-                            title={rule.enabled ? '無効にする' : '有効にする'}
+                            title={rule.is_active ? '無効にする' : '有効にする'}
                             className="inline-flex items-center gap-1 transition-colors disabled:opacity-40"
                           >
-                            {rule.enabled ? (
+                            {rule.is_active ? (
                               <CheckCircle size={18} className="text-green-400 hover:text-green-300" />
                             ) : (
                               <XCircle size={18} className="text-gray-600 hover:text-gray-400" />
                             )}
                           </button>
                         ) : (
-                          rule.enabled ? (
+                          rule.is_active ? (
                             <CheckCircle size={18} className="text-green-400" />
                           ) : (
                             <XCircle size={18} className="text-gray-600" />
@@ -671,7 +710,7 @@ export default function SuppressionsPage() {
                       </td>
 
                       {/* Edit / Delete */}
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 align-top text-center">
                         {canWrite && (
                           <div className="flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button

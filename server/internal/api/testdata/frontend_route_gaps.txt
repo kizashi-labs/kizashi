@@ -224,6 +224,5 @@ PUT /api/v1/custom-fields/${id}
 PUT /api/v1/custom-fields/${id}/toggle
 PUT /api/v1/custom-fields/${target.id}
 PUT /api/v1/profile/notification-preferences
-PUT /api/v1/suppressions/${id}
 PUT /api/v1/threat-hunting/rules/${payload.id}
 PUT /api/v1/threat-models/${data.id}

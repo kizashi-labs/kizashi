@@ -13,8 +13,9 @@ import (
 //	is_active   コンソールの抑制ルール画面 (store.SuppressionStore) が書き、
 //	            **実際に適用される側** (server-detect の
 //	            storeAdapter.ListActiveSuppressions) が読みます
-//	enabled     internal/suppression.Engine の API が書き、Engine の
-//	            LoadFromDB が読みます
+//	enabled     internal/suppression.Engine の API が書いていました。
+//	            **その API は撤去しましたが、書き残したデータは残ります。**
+//	            読み手は今も両方 TRUE を要求します
 //
 // どちらも既定は TRUE です。**片方だけに書くと、書かなかった側は TRUE の
 // まま残ります。**

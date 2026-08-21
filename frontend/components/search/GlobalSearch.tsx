@@ -61,7 +61,6 @@ const NAV_ITEMS: NavItem[] = [
   // 管理（admin）
   { href: '/admin/sigma-rules', label: 'Sigmaルール管理',   group: '管理',         keywords: ['sigma', 'rule', 'シグマ', '検知ルール管理'], icon: FileSearch },
   { href: '/admin/yara-rules',  label: 'YARAルール管理',    group: '管理',         keywords: ['yara', 'ヤラ', 'マルウェア検知'], icon: FileCode },
-  { href: '/admin/alert-suppression', label: 'アラート抑制（管理）', group: '管理', keywords: ['suppression', '抑制', '除外'], icon: ShieldOff },
   { href: '/admin/live-response', label: 'ライブレスポンス（管理）', group: '管理', keywords: ['live response', 'ライブレスポンス', 'リモート'], icon: Terminal },
   { href: '/admin/custom-alert-rules', label: 'カスタムアラートルール', group: '管理', keywords: ['custom', 'カスタム', 'ルール'], icon: Bell },
   { href: '/settings',         label: '設定',               group: '管理',         keywords: ['settings', 'config', '設定', 'コンフィグ'], icon: Settings },

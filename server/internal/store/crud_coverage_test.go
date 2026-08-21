@@ -1309,35 +1309,6 @@ func TestLiveResponseStore_CRUD(t *testing.T) {
 	s.ExpireOldSessions(ctx)
 }
 
-func TestSuppressionRuleStore_CRUD(t *testing.T) {
-	db := covTestDB(t)
-	s := store.NewSuppressionRuleStore(db.Pool())
-	ctx := context.Background()
-	created, err := s.Create(ctx, store.SuppressionRuleEntry{Name: "cov-sup", Description: "d", Pattern: "noise*", MatchField: "title", SeverityMax: 3, Enabled: true})
-	if err != nil {
-		t.Fatalf("Create: %v", err)
-	}
-	t.Cleanup(func() { _ = s.Delete(ctx, created.ID) })
-	if _, err := s.Get(ctx, created.ID); err != nil {
-		t.Fatalf("Get: %v", err)
-	}
-	if _, err := s.List(ctx); err != nil {
-		t.Fatalf("List: %v", err)
-	}
-	if _, err := s.Update(ctx, created.ID, store.SuppressionRuleEntry{Name: "cov-sup-2", Description: "d2", Pattern: "noise2*", MatchField: "description", SeverityMax: 5, Enabled: true}); err != nil {
-		t.Fatalf("Update: %v", err)
-	}
-	if _, err := s.Toggle(ctx, created.ID); err != nil {
-		t.Fatalf("Toggle: %v", err)
-	}
-	if err := s.IncrementCount(ctx, created.ID); err != nil {
-		t.Fatalf("IncrementCount: %v", err)
-	}
-	if err := s.Delete(ctx, created.ID); err != nil {
-		t.Fatalf("Delete: %v", err)
-	}
-}
-
 func TestReportScheduleStore_CRUD(t *testing.T) {
 	db := covTestDB(t)
 	s := store.NewReportScheduleStore(db)

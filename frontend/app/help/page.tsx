@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ExternalLink,
   Mail,
+  Github,
   Info,
   BookOpen,
   Keyboard,
@@ -402,7 +403,7 @@ export default function HelpPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#070d19] border border-[#1e2d42] text-[#7d92b0] hover:border-[#7d92b0]/40 hover:text-[#e2e8f4] transition-colors"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <Github className="w-3.5 h-3.5" />
                 GitHub Issues
               </a>
             </div>
