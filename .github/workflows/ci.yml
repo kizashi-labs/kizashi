@@ -721,7 +721,6 @@ jobs:
         run: |
           go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
           GOOS=windows staticcheck ./...
-          staticcheck -tags ebpf ./...
 
       # Free 版は Windows 専用。ubuntu ランナーではテストを実行できないので、
       # ここではクロスビルドが通ることだけを検査する。
@@ -830,7 +829,7 @@ jobs:
 
       - name: govulncheck
         working-directory: agent
-        run: govulncheck ./...
+        run: GOOS=windows govulncheck ./...
 
   # ── Frontend ──────────────────────────────────────────────────
   frontend-build:

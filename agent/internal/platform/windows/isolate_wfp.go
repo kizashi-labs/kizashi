@@ -211,7 +211,9 @@ func computeBlockRanges(allowedIPs []string) []string {
 			blockRanges = append(blockRanges,
 				uint32ToIPStr(current)+"-"+uint32ToIPStr(r.start-1))
 		}
-		if r.end >= 0xFFFFFFFF {
+		// == で書く。uint32 に MaxUint32 超は無いので >= は staticcheck SA4003 に
+		// 「常に等価比較」と指摘される（GOOS=windows の staticcheck は公開版 CI が初出）。
+		if r.end == 0xFFFFFFFF {
 			return blockRanges
 		}
 		current = r.end + 1
