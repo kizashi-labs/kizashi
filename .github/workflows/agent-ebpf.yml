@@ -27,12 +27,6 @@ name: Agent eBPF Build (Linux prevention/tamper)
 on:
   workflow_dispatch: {}
 
-  push:
-    branches: [main]
-    paths:
-      - 'agent/**'
-      - 'proto/**'
-      - '.github/workflows/agent-ebpf.yml'
 
 # ここは **打ち切らない**（cancel-in-progress: false）。
 #

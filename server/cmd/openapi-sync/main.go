@@ -37,6 +37,7 @@ import (
 
 func main() {
 	check := flag.Bool("check", false, "書き換えずに差分の有無だけを判定する（差分があれば exit 1）")
+	pruneOrphans := flag.Bool("prune-orphans", false, "実装に無い手書き記述を落とす（公開版スナップショットの生成専用）")
 	flag.Parse()
 
 	// リポジトリルートは cwd から上へ辿って決める。以前は -root フラグでも
@@ -92,12 +93,18 @@ func main() {
 
 	// 手書きの記述がルータに無い＝乖離。自動修正はできないので落とす。
 	if drift := spec.HandwrittenDrift(routes); len(drift) > 0 {
-		sort.Strings(drift)
-		fmt.Fprintf(os.Stderr,
-			"openapi.yaml の手書き記述 %d 件が router.go に存在しません。\n"+
-				"実装に合わせて修正するか、削除してください:\n  %s\n",
-			len(drift), strings.Join(drift, "\n  "))
-		os.Exit(1)
+		if *pruneOrphans {
+			// 公開版の生成: 除外したルートの手書き記述は乖離ではなく線引き。
+			n := spec.PruneOrphans(routes)
+			fmt.Printf("実装に無い手書き記述を %d 件落としました（-prune-orphans）\n", n)
+		} else {
+			sort.Strings(drift)
+			fmt.Fprintf(os.Stderr,
+				"openapi.yaml の手書き記述 %d 件が router.go に存在しません。\n"+
+					"実装に合わせて修正するか、削除してください:\n  %s\n",
+				len(drift), strings.Join(drift, "\n  "))
+			os.Exit(1)
+		}
 	}
 
 	out := spec.Sync(routes)

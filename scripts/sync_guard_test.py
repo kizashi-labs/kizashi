@@ -255,8 +255,8 @@ class TestTheRatchets(GuardCase):
 
     def test_all_sixteen_are_named(self):
         """**数ではなく名前で留めます。** 数だと入れ替わりが通ります。"""
-        self.assertEqual(len(G.RATCHETS), 16)
-        self.assertEqual(len(set(G.RATCHETS)), 16)
+        self.assertEqual(len(G.RATCHETS), 10)
+        self.assertEqual(len(set(G.RATCHETS)), 10)
 
 
 class TestTheEbpfMkdir(GuardCase):

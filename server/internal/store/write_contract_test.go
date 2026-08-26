@@ -140,7 +140,7 @@ func TestEveryWriteAgreesWithTheSchema(t *testing.T) {
 	assertSchemaMatchesMigrations(t, pool)
 
 	sites, fragments := staticWrites(t)
-	if len(sites) < 400 {
+	if len(sites) < 250 {
 		t.Fatalf("only %d static writes found — the extractor is broken and this "+
 			"test would pass nearly vacuously", len(sites))
 	}

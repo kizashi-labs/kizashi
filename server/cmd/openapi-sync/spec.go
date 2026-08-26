@@ -212,6 +212,37 @@ func (s *Spec) HandwrittenDrift(routes []Route) []string {
 	return out
 }
 
+// PruneOrphans は「手書きで書かれているのに実装に無い」操作を仕様から落とし、
+// 落とした数を返す。メソッドが全滅したパスブロックはブロックごと落とす。
+//
+// **公開版スナップショットの生成専用**（-prune-orphans）。本流では手書きの
+// 乖離は人が読む誤りなので、黙って消さず HandwrittenDrift で止める。
+func (s *Spec) PruneOrphans(routes []Route) int {
+	real := map[string]bool{}
+	for _, r := range routes {
+		real[r.Method+" "+normPath(r.Path)] = true
+	}
+	dropped := 0
+	var keptBlocks []*pathBlock
+	for _, b := range s.blocks {
+		var kept []methodBlock
+		for _, mb := range b.methods {
+			key := strings.ToUpper(mb.method) + " " + normPath(b.path)
+			if !mb.generated && !real[key] {
+				dropped++
+				continue
+			}
+			kept = append(kept, mb)
+		}
+		b.methods = kept
+		if len(b.methods) > 0 || len(b.extras) > 0 {
+			keptBlocks = append(keptBlocks, b)
+		}
+	}
+	s.blocks = keptBlocks
+	return dropped
+}
+
 // Coverage は「手書きで形状まで書かれている操作数」と「実装の総操作数」を返す。
 func (s *Spec) Coverage(routes []Route) (int, int) {
 	hw := s.handwritten()

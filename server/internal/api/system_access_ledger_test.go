@@ -54,22 +54,17 @@ import (
 var systemAccessRoutes = map[string]string{
 	// ── 認証前。テナントが決まる前に走ります（鶏と卵）──────────
 	"auth":           "users。**テナントは利用者を引いて初めて決まります**",
-	"invitePublic":   "users。招待の宛先を作ります",
 	"pwReset":        "users。メールアドレスから利用者を引きます",
 	"emailMFAPublic": "users。ログインの途中で、まだテナントが決まっていません",
 	"evPublic":       "users。確認トークンから利用者を引きます",
 
 	// ── 端末から。名乗るのは端末で、テナントではありません ──────
-	"lrAgent":                       "agents",
 	"ingestGroup":                   "agents / alerts。外部からの取り込み。トークン認証のみ",
 	"/agents/:id/heartbeat":         "agents",
-	"/agents/:id/software/report":   "agents",
 	"/agents/:id/encryption/report": "agents",
 	"/agents/:id/hardening/report":  "agents",
-	"/agents/:id/yara-rules":        "agents",
 	"/agents/:id/scan-results":      "agents / alerts",
 	"/agents/:id/quarantine-result": "agents",
-	"/ingest/:source_name":          "agents / alerts",
 	"/enrollment/request":           "agents。登録。**この時点では行がありません**",
 
 	// ── テナントを跨ぐ集計 ──────────────────────────────────

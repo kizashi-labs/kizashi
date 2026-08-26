@@ -133,6 +133,10 @@ services:
       HTTP_PORT: 8080
       GRPC_PORT: 9090
       RUN_MIGRATIONS: "true"
+      # cmd/api はこれを読んで Gatekeeper に渡す。空でも変数そのものは配る ——
+      # 配らないと除外リストが空になり、Gatekeeper は除外検査ごとスキップする
+      # （compose_wiring_test が全隔離系サービスへの配線を要求する）。
+      AUTO_ISOLATE_EXEMPT: ${AUTO_ISOLATE_EXEMPT:-}
       # SigmaHQ public-rule auto-sync (SigmaSyncScheduler). Off by default so a
       # fresh deploy does not pull thousands of rules unexpectedly; opt in per
       # environment via .env (SIGMAHQ_SYNC_ENABLED=true). Scope is bounded to the

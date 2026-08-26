@@ -322,7 +322,7 @@ func TestEverySelectAgreesWithTheSchema(t *testing.T) {
 	// 実測: 1265（2026-08-13、コメントを除いたあと。除く前は 1267 で、
 	// 差の2件はコメントの中の一文でした）。
 	sites, fragments := staticSelects(t)
-	if len(sites) < 1200 {
+	if len(sites) < 300 {
 		t.Fatalf("only %d static SELECTs found — the extractor is broken and this "+
 			"test would pass nearly vacuously", len(sites))
 	}

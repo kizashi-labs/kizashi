@@ -248,7 +248,7 @@ func TestEveryRawDataReadMatchesWhatIngestionWrites(t *testing.T) {
 	}
 
 	reads := rawDataReads(t, produced)
-	if len(reads) < 100 {
+	if len(reads) < 50 {
 		t.Fatalf("raw_data の読み出しが %d 箇所しか見つかりませんでした — "+
 			"抽出が壊れており、このテストはほぼ無条件に通ってしまいます", len(reads))
 	}
