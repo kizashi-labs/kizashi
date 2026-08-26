@@ -1,0 +1,8 @@
+-- Migration 185: Enhance users table with additional security/profile fields
+ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_secret TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS login_count INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_count INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;

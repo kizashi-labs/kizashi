@@ -1,0 +1,43 @@
+# gitleaks 設定 — EDR Platform
+#
+# CI の Security Scan (gitleaks-action@v2) が履歴全体を走査し 46 件を検出していたが、
+# 全て偽陽性（テストフィクスチャ・例示用プレースホルダ・ドキュメント・.env.example・
+# E2E 認証フィクスチャ）であることを確認済み。本番シークレットは含まれない
+# （実シークレットは .env に置かれ .gitignore 済み・コミット履歴なし）。
+#
+# 恒常的に赤いシークレットスキャンは警告疲れを招き、本物の漏洩を見逃す原因になる。
+# 以下の allowlist で偽陽性を除外し、スキャンを意味のあるゲートとして機能させる。
+
+title = "EDR Platform gitleaks config"
+
+[extend]
+# gitleaks 標準ルールセットを継承（独自ルールは追加せず除外のみ定義）
+useDefault = true
+
+[allowlist]
+description = "テスト・フィクスチャ・例示・ドキュメントに含まれるプレースホルダ認証情報（本番シークレットではない）"
+# パスは正規表現。コミットされたファイルパスに対してマッチ。
+paths = [
+  # テストコード（Go / TS）— サンプル鍵・トークンを含む
+  '''_test\.go$''',
+  '''\.test\.ts$''',
+  '''\.spec\.ts$''',
+  # E2E 認証フィクスチャ（テスト用に発行された使い捨て JWT）
+  '''frontend/e2e/\.auth/.*\.json$''',
+  # 例示・テンプレート
+  '''(^|/)\.env\.example$''',
+  # ドキュメント（curl 例・API キー例を本文に掲載）
+  '''(^|/)docs/.*\.md$''',
+  '''(^|/)sdk/.*''',
+  # 管理画面の例示ページ — 表示用コードスニペット内のサンプル認証情報
+  # （API ドキュメント・エンロール手順・コネクタ設定例など）
+  '''frontend/app/admin/log-sources/page\.tsx$''',
+  '''frontend/app/admin/api-docs/page\.tsx$''',
+  '''frontend/app/admin/enrollment/page\.tsx$''',
+  '''frontend/app/admin/taxii/page\.tsx$''',
+  '''frontend/app/admin/oncall/page\.tsx$''',
+  '''frontend/app/admin/webhooks/page\.tsx$''',
+  '''frontend/app/admin/guide/page\.tsx$''',
+  '''frontend/app/admin/log-forwarding/page\.tsx$''',
+  '''frontend/app/admin/service-accounts/page\.tsx$''',
+]

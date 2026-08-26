@@ -1,0 +1,151 @@
+# 環境変数・機密情報
+#
+# .env の派生ファイルは「除外すべき名前を列挙する」方式にすると必ず漏れる。手で退避を
+# 作るとき、その場で思いついた接尾辞が付くためで、実際に本番ホスト上に
+# `.env.bak-rls-07290557` という退避が存在し、旧 JWT_SECRET と DB パスワードを含んだまま
+# 追跡対象になりうる状態だった（`.env.backup.*` は除外済みだったのに、この命名は素通り）。
+# `.env.save` `.env.orig` `.env.20260803` なども同様に漏れる。
+# したがって allowlist 方式にする: .env.* は既定で除外し、テンプレートだけを明示的に許可。
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# 証明書・秘密鍵（ルート直下／サブディレクトリ（server/certs 等）の両方を捕捉）
+certs/*.pem
+certs/*.key
+certs/*.crt
+certs/*.csr
+**/certs/*.pem
+**/certs/*.key
+**/certs/*.crt
+**/certs/*.csr
+*.p12
+*.pfx
+# ライセンス署名用ECDSAキー（絶対にリポジトリにコミットしないこと）
+# 生成方法: go run ./server/cmd/licensegen keygen --out-priv priv.pem --out-pub pub.pem
+priv.pem
+
+# Node.js
+node_modules/
+.next/
+.next/cache/
+frontend/.next/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript / Next.js auto-generated
+# - tsbuildinfo: incremental build cache (binary-ish, rewritten every build)
+# - next-env.d.ts: Next.js regenerates on every build (docs URL etc. shifts with version)
+*.tsbuildinfo
+frontend/next-env.d.ts
+
+# Playwright 実行成果物（失敗時のスクショ・動画・トレース。コミット不要）
+frontend/test-results/
+frontend/playwright-report/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server/bin/
+server/*.exe
+# `go build ./cmd/openapi-sync` がリポジトリ直下に吐くバイナリ
+server/openapi-sync
+
+# ダウンロード・一時ファイル
+downloads/
+tmp/
+temp/
+*.tmp
+*.log
+*.swp
+*.swo
+*~
+
+# IDE / エディタ
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# テスト・カバレッジ
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+*.cover
+# Go coverage artifacts (go test -coverprofile / go tool cover -html)
+coverage.out
+coverage.html
+# Go coverage artifacts (make coverage / scripts/coverage-local.sh)
+cover_db.out
+
+# データベースダンプ
+*.sql.gz
+*.dump
+
+# Kubernetes secrets
+k8s/secrets/
+.claude/
+bin/
+*.tmp.*
+downloads/
+
+# Editor / migration auto-backups
+*.bak
+*.bak.*
+
+# Built agent binaries (use scripts/build-agent.sh; CI also produces these)
+# `make build` (agent/Makefile) outputs the bare names; the cross-compile
+# targets output the -<os>-<arch> variants. Ignore all so build artifacts are
+# never committed (the served binaries live in downloads/ via CI).
+/agent/agent
+/agent/watchdog
+agent/agent-linux-amd64
+agent/agent-linux-arm64
+agent/agent-windows-amd64.exe
+agent/watchdog-linux-amd64
+agent/watchdog-linux-arm64
+agent/watchdog-windows-amd64.exe
+# `go build ./cmd/<name>` from within a module drops the bare binary in the
+# module root; these are the tools run ad-hoc during FP soaks and scoring.
+/agent/fleet-sim
+/agent/attack-scorer
+/server/fpsoak-report
+
+# Generated eBPF CO-RE header (regenerate via: bpftool btf dump file /sys/kernel/btf/vmlinux format c)
+agent/ebpf/vmlinux.h
+
+# Go coverage artifacts (go test -coverprofile / make coverage)
+server/coverage.out
+server/coverage.html
+
+# 変異ハーネスの復元用 journal (scripts/mutate.py)。
+# 実行中だけ存在します。残っていれば、前回が戻し切れていない印です。
+.mutate-journal.json
+.mutate-*.tmp

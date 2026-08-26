@@ -1,0 +1,289 @@
+# RLS エスケープ節 fail-closed 化 — フェーズ分割設計
+
+> **状態**: **4 表すべて (agents / alerts / incidents / users) を
+> fail-closed 化済み。** 方式はロール分割から「名乗り」に変えた
+> （下の「7. 方式の変更」）。`app.tenant_id` が空の接続は、4 表の
+> どれも読めません。
+> **前提**: [マルチテナント分離ハードニング.md](マルチテナント分離ハードニング.md) の手順1/2 + migration 324-328 が適用済みであること。
+> **重大度**: 中(残余リスクの解消。手順1/2 と多層防御で主要な BOLA は既に緩和済み)。
+
+---
+
+## 7. 方式の変更 — ロール分割ではなく「名乗り」(migration 450)
+
+**下の 3 章〜6 章はロール分割 (`edr_worker`) の設計です。測った結果、
+この配備では効かないことが分かったので採りませんでした。**
+
+- 既定の配備は **DSN が 1 本**です（`APP_DATABASE_URL` は未設定で
+  `DATABASE_URL` にフォールバック。このリポジトリの docs 自身が
+  「未実施だとテナント分離は無効のまま」と書いています）。
+  4 表は **FORCE RLS** なので所有者 `edr` も方針の対象ですが、
+  **API と系が同じロールで繋ぐ配備では、ロール別方針は両者を
+  区別できません。**
+- CI の Postgres も所有者 `edr` の 1 本です。つまり
+  **ロール案は CI で一度も実行されません。**
+
+採った形は、方針の中で「全テナントを見る」と**名乗らせる**ものです:
+
+```sql
+-- いま (migration 450): 名乗りの項を足しただけ。挙動は変わっていない
+USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
+       OR current_setting('app.tenant_id', TRUE) = 'system'
+       OR current_setting('app.tenant_id', TRUE) IS NULL   -- ← 落とす
+       OR current_setting('app.tenant_id', TRUE) = '')     -- ← 落とす
+```
+
+配線の手間はロール案と同じで、違うのは**配備側に何を要求するか**です。
+名乗りは新しいロールも 2 本目の DSN も要らず、いまの 1 本 DSN の配備で
+そのまま効き、CI でも実行されます。ロール分割と併用もできます
+（多層防御としては上乗せになります）。
+
+### 実装済み
+
+| 何を | どこに |
+| --- | --- |
+| 名乗りの仕組み | `store.WithSystemAccess` / `store.SystemTenant` |
+| 外から `system` を名乗れないこと | `store.prepareConnForTenant`（JWT の tenant_id はここに来ます） |
+| 方針への項の追加 | migration 450（**挙動は変わりません**） |
+| 背景ワーカ 33 本 | `cmd/{api,ingestion,detection}` の**プロセス ctx 1 か所ずつ**。設計書が「約35本の配線」と見積もっていた部分は、ctx が 1 本なので 3 か所で覆えました |
+| 認証前の HTTP 経路 16 件 | `mw.SystemAccessMiddleware()` を group / 経路ごとに |
+| 台帳 | `internal/api/system_access_ledger_test.go` |
+
+`cmd/api` のプロセス ctx を包んでも HTTP 要求には伝わりません ——
+gin は `http.ListenAndServe` を `BaseContext` 無しで呼ぶので、
+要求ごとの ctx は `context.Background()` から生えます。
+
+### 数え方を一度間違えました
+
+最初この一覧は「公開経路」で数えていました。**足りません。**
+`tenantMiddleware` は `protected` にしか付いていないので、
+**認証は通るがテナントを載せない経路**があります:
+
+| グループ | 経路 | 触る表 |
+| --- | --- | --- |
+| `authProtected` | `/api/v1/auth/mfa/*` (5) | `users` を読み書き |
+| `emailMFAProtected` | `/mfa/email/{enable,disable}` (2) | `users` |
+| `evProtected` | `/email-verification/{send,status}` (2) | `users` |
+
+認証済みかどうかは関係ありません。**RLS が見ているのは `app.tenant_id`
+だけ**で、それを張るのは ctx です。だから数える軸は「公開か」ではなく
+**「4 表にテナント無しで届くか」**です。
+
+`internal/api/system_access_ledger_test.go` が router.go を **go/ast で
+関数ごとに**読み、テナントも名乗りも無い経路が台帳に無ければ落とします。
+関数スコープを切るのは、同名の group 変数が別の関数で使われているため
+です（`dw` が 2 か所、`v1` / `taxii` も）。ファイル全体を 1 スコープで
+読むと、`registerPlatformUpgradeRoutes` / `darkwebRoutes` の 20 経路を
+「テナント無し」と誤検出します —— 実際には `protected` で呼ばれています。
+
+### 直し方は 2 通り
+
+| | いつ | 何を足す |
+| --- | --- | --- |
+| テナントを張る | 認証済みで、誰の要求か分かっている | `tenantMiddleware`（**絞る向き**） |
+| 名乗る | テナントが決まらない（認証前・端末から・テナントを跨ぐ集計） | `sysAccess` |
+
+**名乗りは最後の手段です。** 張れるなら張ってください。
+
+### 判定の結果
+
+- `authProtected` に `tenantMiddleware` を追加（`users` の 9 経路）
+- `/api/v1/health/detailed` に `sysAccess` を追加 ——
+  **公開経路ですが `agents` / `alerts` / `incidents` を COUNT します**
+- 残りは 4 表に届かないことを確かめて `dbFreeRoutes` に理由つきで記録
+  （`/ws/*` は `notification.Hub` が DB に触らない、`track` は
+  `phishing_recipients`、`taxii` は `ioc_entries`、ほか静的応答）
+
+### 「残り 1 つ」も間違いでした
+
+いったん「単一テナント配備の JWT は `tenant_id` を持たない」と書きましたが、
+**測ったら違いました。** トークンを出す 4 経路（login / admin / MFA 検証 /
+メール MFA）はすべて、すでに既定テナントへ落としています。テナントを
+持たないのは pre-auth トークンだけで、middleware が `/auth/mfa/verify`
+以外を拒みます（そこは公開経路で `sysAccess` 済み）。
+
+**本当の穴は、要求から離れる仕事にありました。** ハンドラが `go func()` で
+続きを走らせるとき `context.Background()` から ctx を作るので、そこで
+テナントが落ちます。handlers の 17 か所を読んで、4 表に触るのは 2 か所
+（`asset_discovery_handler.StartScan` と `reports_handler.generateReport`）。
+**これは fail-closed 化を待つ話ではなく、現に漏れていました** —— テナント
+A のレポートに B のアラートが入る形です。`store.WithTenant` で直し、
+`background_tenant_ledger_test.go` が 17 か所を留めています。
+
+### 落とした世界は、もう測ってあります
+
+`internal/store/two_tenant_failclosed_test.go` が、**方針を厳格版に
+差し替えて 2 テナントで実測**し、必ず元に戻します。差し替える文字列は
+次の migration で入れる形と同じなので、**ここが緑なら、その migration は
+一度実物で走ったことになります。**
+
+| 接続 | 期待 | 結果 |
+| --- | --- | --- |
+| テナント A / B | 自分の行だけ（両方向） | ✅ |
+| 名乗り (`system`) | 両方見える | ✅ |
+| 素の ctx | **0 行** | ✅ |
+| 素の ctx で書き込み | RLS が拒む | ✅ |
+| 接続の使い回し | 前のテナントが残らない | ✅ |
+
+**DB を専有する**ので `RLS_FAILCLOSED=1` を付けた専用の実行でだけ走ります
+—— `go test ./...` は package を並列に走らせるため、混ぜると他 package が
+巻き添えで落ちて不安定になります。**不安定な検査は無視され、無視される
+検査は消えます。** ci.yml の `RLS fail-closed rehearsal` と verify.sh の
+同名の節が呼びます。
+
+空振りでないことも確かめてあります。差し替えをやめると「素の ctx に行が
+見えている」で落ち、`SET ROLE edr_app` をやめると（スーパーユーザは RLS を
+素通りするので）「A から B が見えている」で落ちます。
+
+### 4 表とも落としました (451 / 453 / 454 / 455)
+
+順番には理由があります。
+
+| 順 | 表 | なぜそこか |
+| --- | --- | --- |
+| 1 | `agents` | **検知パイプラインが最も強く依存する。** 壊れるならいちばん早く、いちばん大きく出る |
+| 2 | `alerts` | **系が絶えず書き込む。** 読みが通ることを確かめたあと、書きがいちばん重いところで見る |
+| 3 | `incidents` | 相関エンジンが書く。**形は前の 2 つと同じ**なので新しい危険を持ち込まない |
+| 4 | `users` | **認証がテナントを決める前に引く**（鶏と卵）。形が違うので単独で見る |
+
+**その「書き」で、私が #77 で入れた回帰が出ました。** `tenant_id` 列の
+DEFAULT が `current_setting('app.tenant_id')::uuid` を読むので、名乗り
+(`'system'`) を uuid に変換しようとして INSERT ごと落ちていました ——
+**アラートが 1 件も書けない状態**です。migration 452 で直し、
+`system_claim_insert_test.go` が塞ぎました。**読みだけ確かめて落として
+いたら、気づかないまま alerts を落としていました。**
+
+落とす前に木全体を `-count=1` で走らせた結果、落ちたのは **agents で
+台帳 2 件、alerts / incidents / users で 1 件ずつ**でした。本番の経路は
+1 つも落ちていません。
+
+| 落ちたもの | 何を言っていたか |
+| --- | --- |
+| `TestRLSPoliciesMatchWhatWeRecorded` | 「agents は抜け道を持たなくなりました。`permissiveWhenUnset` から消してください」 |
+| `TestSystemPathsWithoutATenantSeeEverything` | 「テナント未設定で 0 件しか見えません（2件のはず）」 |
+
+どちらも**そう言うために書いた検査**です。台帳を更新し、後者は
+`TestAnUnsetConnectionSeesNoAgents` に向きを変えました。
+
+> **`go test` の結果キャッシュに注意してください。** DB の状態は
+> `go test` の入力に入らないので、方針を変えても前の成功が再利用されます。
+> 最初この罠にはまり、「失敗 0 件」を 2 回報告しかけました。
+> **DB の状態を変えて測るときは必ず `-count=1` を付けてください。**
+
+### users だけ、木を走らせても出ない穴がありました
+
+**木全体が緑でも、users の配線は 1 か所足りていませんでした。** 検査の
+接続主体は所有者 `edr` で、これはスーパーユーザなので RLS を無条件に
+素通りします（FORCE を付けても対象外です）。**つまり普通の検査は、方針を
+厳格版にしても何も変わりません。**
+
+足りなかったのは `authMiddleware` の中の 2 本です。どちらもテナントが
+決まる**前**に users に届きます:
+
+| 呼び出し | 抜け道を落とすとどうなるか |
+| --- | --- |
+| `UserCache.IsActive` | 行が無い → 「削除された利用者」と読む → **認証済みの要求が全部 401**。ログには実在しない削除ユーザーを探させる誤診が残る |
+| `APIKeyStore.FindByKey` | `LEFT JOIN users` の側だけが落ちる。`api_keys` に RLS は無いので**鍵は引けたまま、テナントだけが静かに消える** → すでに fail-closed な 3 表が 0 行。要求は 200 を返し、中身だけが空になる |
+
+公開の 5 経路（login / invite / password-reset / email-MFA /
+email-verification）は #79 で `sysAccess` を張ってありました。**残って
+いたのはこの 2 本だけで、経路ではなく middleware の内側にあるので、
+経路の台帳では数えられません。**
+
+`users_failclosed_auth_test.go` が `SET ROLE edr_app` の側で 4 通り
+測ります —— 名乗った接続では両方引けること、**素の接続では上の 2 つの
+壊れ方が実際に起きること**。片側だけだと、名乗りが外れても緑のままです。
+配線が外れていないことは
+`TestAuthMiddlewareClaimsOnlyForTheTwoUserLookups` が留めます。
+
+### 新しく抜け道を持つ表が増えたときの手順
+
+1. `two_tenant_failclosed_test.go` の演習で、落とした世界を先に測る
+2. 木全体を **`-count=1` で**走らせる
+3. 落ちたのが台帳だけなら、台帳を更新して落とす
+4. `two_tenant_failclosed_test.go` の `alreadyFailClosed` にその表を足す
+   —— **足し忘れると、演習の後始末が抜け道を復活させます**
+5. **その表がテナントの決まる前に読まれるなら、木の緑は当てになりません。**
+   `edr_app` の側で測る検査を別に書いてください（users がそうでした）
+
+**台帳は「気づける」であって「網羅した」ではありません。** 走査は
+router.go と handlers を見るだけで、store を何段も経由した先までは
+追えていません。1 表ずつ落としたのは、そこを実運転で埋めるためです。
+
+### 分かっている挙動の変化
+
+4 表について、**テナントを持たない APIキー**は 0 行を見るように
+なりました（`TestAPIKeyWhoseOwnerHasNoTenantGetsNoTenant` が、そういう鍵が
+実在しうることを記録しています）。以前は抜け道で全テナントが見えていた
+ので、**これは是正**です —— ただし、そういう鍵を使っている配備では
+「端末が見えなくなった」として現れます。鍵の持ち主にテナントを持たせて
+ください。
+
+---
+
+## 1. 目的と残余リスク
+
+> **ここから下は着手前に書いた設計です。** 「現行」は当時の現行を指します
+> —— 4 表とも fail-closed 化が済んだいま、下の記述はそのままでは現状では
+> ありません。**方式もロール分割から名乗りに変わりました**（「7. 方式の変更」）。
+> 何をどう見積もっていたかの記録として残します。
+
+当時の RLS ポリシー(agents/alerts/incidents/users)は fail-**open**:
+
+```sql
+USING (tenant_id::text = current_setting('app.tenant_id', TRUE)
+       OR current_setting('app.tenant_id', TRUE) IS NULL
+       OR current_setting('app.tenant_id', TRUE) = '')
+```
+
+エスケープ節(`IS NULL OR = ''`)により、**`app.tenant_id` を設定し損ねた接続は全テナントにアクセスできる**。API リクエストで tenant 設定が漏れるバグ(例: JWT に tenant_id 欠落、middleware 適用漏れの新規ルート)が即クロステナント漏洩になる。理想は API 接続を fail-**closed**(`USING (tenant_id = current_setting(...)::uuid)`、未設定なら 0 行)にすること。
+
+## 2. なぜ単純にエスケープ節を外せないか(2026-07 監査結論)
+
+`app.tenant_id` をセットするのは HTTP リクエスト経路(`tenantMiddleware`)のみ。以下は**同一 `edr_app` プールを `app.tenant_id` 未設定で共有し、エスケープ節に依存**している:
+
+- **cmd/api 内の約35本のバックグラウンドワーカ**: HeartbeatMonitor / DeadAgentCleanup / DataRetentionCleaner(DELETE alerts) / 各種アラート生成 detector・correlator(IOCMatcher, RealtimeCorrelator, VulnerabilityScanner, NetworkAnomalyDetector, InsiderThreatDetector 等) / 集計 collector(SecurityMetrics, SecurityKPI, Compliance) / IncidentEscalator / AlertAggregator / 通知系(DigestScheduler, AlertDigestSender, LicenseExpiryNotifier, BillingGraceNotifier) / in-process 検知パイプライン ほか。
+- **認証前 HTTP 経路**: ログイン(`users`)、agent heartbeat(`agents`/`alerts`)、enrollment(`agents`)、Wazuh/Mobile/Log ingest(`agents`/`alerts`)、scan-results。
+
+単純にエスケープ節を削除すると、これらが 0 行/INSERT 拒否になり **ログイン全滅・agent 永久オフライン・アラート生成/保持削除/集計/通知の全停止**を招く。
+
+## 3. フェーズ分割設計
+
+### Phase 0: 前提整備(一部 #541 で実施済み)
+- [x] alerts/incidents に tenant_id DEFAULT(migration 328)。
+- [ ] **alert/incident 生成経路での agent→tenant 解決**: 現状 INSERT は tenant_id 未設定(DEFAULT で既定テナント)。マルチテナントでは対象 agent のテナントを解決して明示設定する必要がある。約15本の生成ワーカ + ingest 経路が対象。これが最も工数の大きい下地。
+
+### Phase 1: worker ロールの導入
+- migration: 非スーパーユーザ `edr_worker` ロールを作成(edr_app と同様 NOLOGIN・パスワード未設定で用意、GRANT は edr_app と同一)。
+- RLS ポリシーを**ロール別**にする:
+  - `edr_worker` 向け permissive ポリシー: `USING (true)`(全テナント可視)。
+  - 既存の tenant ポリシーは据え置き(全ロール対象)。この時点では挙動不変。
+
+### Phase 2: 別プロセスを worker ロールへ
+- cmd/ingestion / cmd/detection の `APP_DATABASE_URL` を `edr_worker` の DSN に向ける(env のみ)。cmd/updater は RLS テーブル不使用のため任意。
+- これらは別プロセスなので配線変更不要。エスケープ節無しでも全テナント処理が維持される。
+
+### Phase 3: cmd/api の第2プール
+- cmd/api に**2本目のプール**(`WORKER_DATABASE_URL` = edr_worker)を追加。
+- **バックグラウンドワーカ + 認証前ハンドラ**(ログイン/heartbeat/enrollment/ingest)をこの worker プールに配線し直す。認証済みハンドラは従来の edr_app プール(tenant scoped)のまま。
+  - 配線点: `cmd/api/main.go` の各ワーカ生成(`db.Pool()` を渡している箇所 約35本)と、public ルートのハンドラが使う store。
+- ★これが最大の変更。ワーカ/ハンドラごとにどちらのプールを使うべきかを棚卸しし、テストで担保する。
+
+### Phase 4: API ポリシーを fail-closed 化
+- 全 Phase 完了後、tenant ポリシーからエスケープ節を除去:
+  ```sql
+  USING (tenant_id::text = current_setting('app.tenant_id', TRUE))
+  ```
+- `edr_worker` は Phase 1 の `USING (true)` ポリシーで全テナント可視のまま。`edr_app`(認証済み API)は自テナントのみ = fail-closed。
+- WITH CHECK も明示(INSERT/UPDATE で他テナント行を作らせない)。
+
+### Phase 5: 検証・ロールアウト
+- ステージングで: ログイン/heartbeat/enrollment/ingest/各ワーカ/認証済み API の全経路を回帰。
+- app.tenant_id を設定し損ねた API リクエストが**0 行(403/404 相当)**になることを確認(fail-closed の実証)。
+- ロールバック: ポリシーをエスケープ節付きに戻す migration + `WORKER_DATABASE_URL` 未設定でフォールバック。
+
+## 4. リスクと非対象
+
+- 各 Phase は前 Phase まで挙動不変(env フォールバック/ポリシー据え置き)を保つよう設計する。Phase 4 のみが挙動を変える。
+- 単一テナント運用では fail-closed 化の実益は小さい(全データが既定テナント)。マルチテナント本番投入前に完了させるのが目標。
+- 本設計は残余リスクの解消であり、主要な BOLA は手順1/2(FORCE RLS + edr_app)+ 対応アクションのアプリ層検証で既に緩和済み。

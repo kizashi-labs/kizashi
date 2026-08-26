@@ -1,0 +1,33 @@
+{
+  "name": "Kizashi",
+  "short_name": "Kizashi",
+  "description": "次世代エンドポイント検知・対応プラットフォーム",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#060d1a",
+  "theme_color": "#060d1a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "アラート",
+      "url": "/alerts",
+      "description": "セキュリティアラートを表示"
+    },
+    {
+      "name": "ダッシュボード",
+      "url": "/dashboard",
+      "description": "ダッシュボードを表示"
+    }
+  ],
+  "categories": ["security", "productivity", "utilities"]
+}

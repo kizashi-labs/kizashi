@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "edr-platform.fullname" . }}-postgres
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "edr-platform.postgres.labels" . | nindent 4 }}
+  {{- with .Values.postgres.podAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ include "edr-platform.fullname" . }}-postgres-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "edr-platform.postgres.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "edr-platform.postgres.selectorLabels" . | nindent 8 }}
+      {{- with .Values.postgres.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "edr-platform.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "edr-platform.serviceAccountName" . }}
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: postgres
+          image: {{ include "edr-platform.postgres.image" . }}
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: {{ .Values.postgres.port }}
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.postgres.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "edr-platform.fullname" . }}-server-secret
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U {{ .Values.postgres.username }} -d {{ .Values.postgres.database }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U {{ .Values.postgres.username }} -d {{ .Values.postgres.database }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.postgres.resources | nindent 12 }}
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+  {{- if .Values.postgres.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+        labels:
+          {{- include "edr-platform.postgres.labels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.postgres.persistence.accessMode | quote }}
+        {{- if .Values.postgres.persistence.storageClass }}
+        storageClassName: {{ .Values.postgres.persistence.storageClass | quote }}
+        {{- else if .Values.global.storageClass }}
+        storageClassName: {{ .Values.global.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.postgres.persistence.size | quote }}
+  {{- else }}
+  # Persistence disabled — using emptyDir (data will be lost on pod restart)
+  # Enable persistence for production deployments.
+  {{- end }}

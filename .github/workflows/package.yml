@@ -1,0 +1,442 @@
+name: Agent Packages (deb/rpm/msi/pkg)
+
+# Builds installable OS packages for the agent and, where signing credentials
+# are configured, signs them.
+#
+# Why: the only install paths this repo had were `curl … | bash` and an
+# interactive install.ps1. Intune, SCCM, Group Policy, Jamf, apt and yum can all
+# deploy a signed package and none of them can deploy a shell one-liner run as
+# root with environment variables. That gap, not agent capability, is what stops
+# a fleet rollout.
+#
+# Signing is credential-gated rather than required. Windows EV/OV certificates
+# and Apple Developer ID identities have procurement lead times measured in
+# weeks; the packages must be buildable and testable before then. What is NOT
+# allowed is publishing an unsigned package as though it were signed — see the
+# per-job notes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version (no leading v), e.g. 1.2.3'
+        required: true
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+# ここも **打ち切らない**（cancel-in-progress: false）。
+#
+# 3 プラットフォームぶんのパッケージをビルドしてから GitHub Release に
+# 添付する。途中で切ると、資産が一部だけ付いた Release が残る。
+# タグ単位で直列化するだけにして、始まった実行は完走させる。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ── Linux: .deb and .rpm ───────────────────────────────────────────────────
+  linux-packages:
+    timeout-minutes: 30
+    name: deb/rpm — ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { goarch: amd64, arch: amd64 }
+          - { goarch: arm64, arch: arm64 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            v="${{ inputs.version }}"
+          else
+            v="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "packaging version: $v"
+
+      # Plain (telemetry-only) build. The eBPF/LSM enforcing variant is not
+      # packaged here: it needs clang plus the runner's BTF and is published
+      # separately by agent-ebpf.yml, and shipping it as the default .deb would
+      # put an enforcing sensor on hosts whose kernel cannot load it.
+      - name: Build binaries
+        working-directory: agent
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p dist/${{ matrix.goarch }}
+          go build -trimpath -ldflags="-s -w -X main.version=${{ steps.ver.outputs.version }}" \
+            -o dist/${{ matrix.goarch }}/edr-agent ./cmd/agent
+          go build -trimpath -ldflags="-s -w" \
+            -o dist/${{ matrix.goarch }}/edr-watchdog ./cmd/watchdog
+          ls -la dist/${{ matrix.goarch }}
+
+      - name: Install nfpm
+        timeout-minutes: 10
+        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.0
+
+      # Binaries are staged into packaging/nfpm/bin rather than referenced where
+      # they were built: nfpm expands ${VAR} in scalar fields like `version` and
+      # `arch`, but `contents[].src` is globbed before expansion, so a ${BINDIR}
+      # there fails with "no matching files".
+      - name: Build deb and rpm
+        working-directory: packaging/nfpm
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p bin out
+          cp ../../agent/dist/${{ matrix.goarch }}/edr-agent    bin/
+          cp ../../agent/dist/${{ matrix.goarch }}/edr-watchdog bin/
+          chmod 0755 bin/edr-agent bin/edr-watchdog
+          nfpm package --config agent.yaml --packager deb --target out/
+          nfpm package --config agent.yaml --packager rpm --target out/
+          ls -la out/
+
+      # GPG signing. Repositories (apt/yum) verify the signature, so an unsigned
+      # package cannot be served from a repo the customer trusts — it can only
+      # be installed by hand with a warning. Absence of a key is therefore a
+      # warning, not a failure: the packages are still valid for direct install
+      # and for testing.
+      - name: Check for a signing key
+        id: gpg
+        env:
+          KEY: ${{ secrets.PACKAGE_GPG_PRIVATE_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::PACKAGE_GPG_PRIVATE_KEY is not configured — publishing UNSIGNED deb/rpm. They cannot be served from a signed apt/yum repository."
+          fi
+
+      - name: Sign packages
+        timeout-minutes: 10
+        if: steps.gpg.outputs.available == 'true'
+        working-directory: packaging/nfpm/out
+        env:
+          GPG_KEY: ${{ secrets.PACKAGE_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.PACKAGE_GPG_PASSPHRASE }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y dpkg-sig rpm
+          printf '%s' "$GPG_KEY" | gpg --batch --import
+          keyid="$(gpg --list-secret-keys --with-colons | awk -F: '/^sec:/ {print $5; exit}')"
+          echo "signing with $keyid"
+
+          for f in *.deb; do
+            dpkg-sig --sign builder -k "$keyid" -g "--batch --pinentry-mode loopback --passphrase '$GPG_PASSPHRASE'" "$f"
+          done
+
+          cat > "$HOME/.rpmmacros" <<EOF
+          %_signature gpg
+          %_gpg_name $keyid
+          %__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --passphrase $GPG_PASSPHRASE --no-armor --no-secmem-warning -u "%{_gpg_name}" -sbo %{__signature_filename} %{__plaintext_filename}
+          EOF
+          for f in *.rpm; do rpm --addsign "$f"; done
+
+          # Prove the signature landed: `rpm --addsign` exits 0 on a package it
+          # silently failed to sign under some gpg versions.
+          for f in *.rpm; do rpm -qpi "$f" | grep -q 'Signature.*Key ID' || { echo "unsigned: $f" >&2; exit 1; }; done
+
+      - name: Checksums
+        working-directory: packaging/nfpm/out
+        run: for f in *.deb *.rpm; do sha256sum "$f" > "$f.sha256"; done
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: linux-packages-${{ matrix.arch }}
+          path: packaging/nfpm/out/
+
+  # ── Windows: .msi ──────────────────────────────────────────────────────────
+  windows-msi:
+    timeout-minutes: 30
+    name: msi — x64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then v="${{ inputs.version }}"; else v="${GITHUB_REF_NAME#v}"; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Build binaries
+        working-directory: agent
+        shell: bash
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p dist/windows
+          go build -trimpath -ldflags="-s -w -X main.version=${{ steps.ver.outputs.version }}" \
+            -o dist/windows/edr-agent.exe ./cmd/agent
+          go build -trimpath -ldflags="-s -w" \
+            -o dist/windows/edr-watchdog.exe ./cmd/watchdog
+
+      # Binaries are signed BEFORE they go into the MSI. Signing only the MSI
+      # would leave the installed .exe files unsigned on disk, where Windows
+      # Defender Application Control, AppLocker and WDAC policies inspect them —
+      # and where an EDR sensor of all things should not be the unsigned binary.
+      - name: Check for a code-signing certificate
+        id: sign
+        shell: bash
+        env:
+          PFX: ${{ secrets.WINDOWS_CODESIGN_PFX }}
+        run: |
+          if [ -n "$PFX" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::WINDOWS_CODESIGN_PFX is not configured — producing an UNSIGNED MSI. SmartScreen will warn, and it cannot be deployed under policies that require a signed installer."
+          fi
+
+      - name: Import certificate
+        if: steps.sign.outputs.available == 'true'
+        shell: pwsh
+        env:
+          PFX: ${{ secrets.WINDOWS_CODESIGN_PFX }}
+          PFX_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+        run: |
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\cert.pfx", [Convert]::FromBase64String($env:PFX))
+          $pw = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+          Import-PfxCertificate -FilePath "$env:RUNNER_TEMP\cert.pfx" `
+            -CertStoreLocation Cert:\CurrentUser\My -Password $pw | Out-Null
+          Remove-Item "$env:RUNNER_TEMP\cert.pfx"
+
+      - name: Sign binaries
+        if: steps.sign.outputs.available == 'true'
+        shell: pwsh
+        working-directory: agent/dist/windows
+        run: |
+          $signtool = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+                       Where-Object { $_.FullName -like '*x64*' } | Select-Object -First 1).FullName
+          if (-not $signtool) { throw "signtool.exe not found on the runner" }
+          & $signtool sign /a /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
+            edr-agent.exe edr-watchdog.exe
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
+          & $signtool verify /pa /v edr-agent.exe
+          if ($LASTEXITCODE -ne 0) { throw "signature verification failed" }
+
+      - name: Install WiX
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix --version
+          wix extension add -g WixToolset.Util.wixext/5.0.2
+
+      - name: Build MSI
+        shell: pwsh
+        working-directory: packaging/windows
+        run: |
+          $bin = Resolve-Path ..\..\agent\dist\windows
+          wix build edr-agent.wxs `
+            -arch x64 `
+            -ext WixToolset.Util.wixext `
+            -d BinDir="$bin" `
+            -d Version="${{ steps.ver.outputs.version }}" `
+            -o "edr-agent-${{ steps.ver.outputs.version }}-x64.msi"
+          Get-ChildItem *.msi
+
+      - name: Sign MSI
+        if: steps.sign.outputs.available == 'true'
+        shell: pwsh
+        working-directory: packaging/windows
+        run: |
+          $signtool = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+                       Where-Object { $_.FullName -like '*x64*' } | Select-Object -First 1).FullName
+          & $signtool sign /a /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 (Get-ChildItem *.msi)
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed on the MSI" }
+          & $signtool verify /pa /v (Get-ChildItem *.msi)
+          if ($LASTEXITCODE -ne 0) { throw "MSI signature verification failed" }
+
+      - name: Checksums
+        shell: bash
+        working-directory: packaging/windows
+        run: for f in *.msi; do sha256sum "$f" > "$f.sha256"; done
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: windows-msi
+          path: |
+            packaging/windows/*.msi
+            packaging/windows/*.sha256
+
+  # ── macOS: .pkg ────────────────────────────────────────────────────────────
+  macos-pkg:
+    timeout-minutes: 30
+    name: pkg — ${{ matrix.arch }}
+    runs-on: macos-14
+    strategy:
+      matrix:
+        include:
+          - { goarch: amd64, arch: x86_64 }
+          - { goarch: arm64, arch: arm64 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then v="${{ inputs.version }}"; else v="${GITHUB_REF_NAME#v}"; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      # The default (non-ESF) build. The ESF variant needs cgo and Apple's
+      # approved endpoint-security entitlement; it is built and published by
+      # agent-macos-esf.yml once that entitlement exists.
+      - name: Build binaries
+        working-directory: agent
+        env:
+          GOOS: darwin
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p dist/pkgroot/usr/local/bin
+          mkdir -p "dist/pkgroot/Library/LaunchDaemons"
+          go build -trimpath -ldflags="-s -w -X main.version=${{ steps.ver.outputs.version }}" \
+            -o dist/pkgroot/usr/local/bin/edr-agent ./cmd/agent
+          go build -trimpath -ldflags="-s -w" \
+            -o dist/pkgroot/usr/local/bin/edr-watchdog ./cmd/watchdog
+          cp ../packaging/macos/com.edrplatform.agent.plist \
+             "dist/pkgroot/Library/LaunchDaemons/com.edrplatform.agent.plist"
+          chmod 0644 "dist/pkgroot/Library/LaunchDaemons/com.edrplatform.agent.plist"
+
+      - name: Check for signing credentials
+        id: sign
+        env:
+          P12: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$P12" ] && [ -n "$TEAM_ID" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Apple signing secrets are not configured — producing an UNSIGNED pkg. Gatekeeper will refuse it on any Mac with default settings."
+          fi
+
+      - name: Import Developer ID certificate
+        if: steps.sign.outputs.available == 'true'
+        env:
+          P12: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/pkg-signing.keychain-db"
+          pass="$(uuidgen)"
+          security create-keychain -p "$pass" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$pass" "$keychain"
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/productsign
+          security set-key-partition-list -S apple-tool:,apple: -k "$pass" "$keychain" >/dev/null
+          security list-keychain -d user -s "$keychain" login.keychain-db
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+      - name: Sign binaries
+        if: steps.sign.outputs.available == 'true'
+        working-directory: agent/dist/pkgroot/usr/local/bin
+        env:
+          SIGN_IDENTITY: ${{ secrets.APPLE_SIGN_IDENTITY }}
+        run: |
+          for b in edr-agent edr-watchdog; do
+            codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$b"
+            codesign --verify --verbose=2 "$b"
+          done
+
+      - name: Build pkg
+        working-directory: packaging/macos
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          chmod +x scripts/preinstall scripts/postinstall
+          pkgbuild \
+            --root ../../agent/dist/pkgroot \
+            --scripts scripts \
+            --identifier com.edrplatform.agent \
+            --version "$VERSION" \
+            --install-location / \
+            "edr-agent-${VERSION}-${{ matrix.arch }}-unsigned.pkg"
+          ls -la *.pkg
+
+      - name: Sign and notarize pkg
+        if: steps.sign.outputs.available == 'true'
+        working-directory: packaging/macos
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_NOTARY_APPLE_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_PASSWORD: ${{ secrets.APPLE_NOTARY_APP_PASSWORD }}
+        run: |
+          out="edr-agent-${VERSION}-${{ matrix.arch }}.pkg"
+          # A pkg is signed with a "Developer ID Installer" identity, which is a
+          # different certificate from the "Developer ID Application" one used
+          # for the binaries. Using the application identity here produces a pkg
+          # that installs on the build machine and is rejected everywhere else.
+          productsign --sign "$INSTALLER_IDENTITY" \
+            "edr-agent-${VERSION}-${{ matrix.arch }}-unsigned.pkg" "$out"
+          pkgutil --check-signature "$out"
+
+          xcrun notarytool submit "$out" \
+            --apple-id "$APPLE_ID" --team-id "$TEAM_ID" \
+            --password "$APP_PASSWORD" --wait
+          xcrun stapler staple "$out"
+          xcrun stapler validate "$out"
+          rm -f "edr-agent-${VERSION}-${{ matrix.arch }}-unsigned.pkg"
+
+      - name: Checksums
+        working-directory: packaging/macos
+        run: for f in *.pkg; do shasum -a 256 "$f" > "$f.sha256"; done
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: macos-pkg-${{ matrix.arch }}
+          path: |
+            packaging/macos/*.pkg
+            packaging/macos/*.sha256
+
+  # ── Attach to the release (tag builds only) ────────────────────────────────
+  attach:
+    timeout-minutes: 15
+    name: Attach packages to the release
+    runs-on: ubuntu-latest
+    needs: [linux-packages, windows-msi, macos-pkg]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: packages/
+          merge-multiple: true
+
+      - name: List
+        run: ls -la packages/
+
+      - uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        with:
+          files: packages/*
+          fail_on_unmatched_files: true

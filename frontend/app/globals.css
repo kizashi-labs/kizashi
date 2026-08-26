@@ -1,0 +1,305 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-falcon-bg: #080c14;
+  --color-falcon-surface: #0d1220;
+  --color-falcon-card: #111827;
+  --color-falcon-raised: #161f33;
+  --color-falcon-border: #1e2d42;
+  --color-falcon-hover: #19253d;
+  --color-falcon-active: #1d2f4a;
+  --color-falcon-red: #e8002d;
+  --color-falcon-red-dark: #a80020;
+  --color-falcon-red-dim: rgba(232, 0, 45, 0.12);
+  --color-falcon-blue: #1a6bff;
+  --color-falcon-blue-dim: rgba(26, 107, 255, 0.12);
+  --color-falcon-cyan: #00b8d4;
+  --color-falcon-green: #00c853;
+  --color-falcon-green-dim: rgba(0, 200, 83, 0.12);
+  --color-falcon-amber: #ff9800;
+  --color-falcon-amber-dim: rgba(255, 152, 0, 0.12);
+  --color-falcon-text: #e2e8f4;
+  --color-falcon-muted: #7d92b0;
+  --color-falcon-subtle: #3d5068;
+
+  --font-mono: JetBrains Mono, Fira Code, Consolas, monospace;
+
+  --shadow-falcon-card:
+    0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-falcon-modal:
+    0 25px 50px rgba(0, 0, 0, 0.7), 0 10px 20px rgba(0, 0, 0, 0.5);
+  --shadow-falcon-glow-red: 0 0 12px rgba(232, 0, 45, 0.3);
+  --shadow-falcon-glow-blue: 0 0 12px rgba(26, 107, 255, 0.3);
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-fade-in: fadeIn 0.15s ease-out;
+  --animate-slide-in: slideIn 0.2s ease-out;
+
+  --background-image-falcon-gradient: linear-gradient(
+    180deg,
+    #0d1220 0%,
+    #080c14 100%
+  );
+  --background-image-falcon-card-gradient: linear-gradient(
+    145deg,
+    #111827 0%,
+    #0d1220 100%
+  );
+  --background-image-red-gradient: linear-gradient(
+    135deg,
+    #e8002d 0%,
+    #a80020 100%
+  );
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes slideIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility fc-card {
+  /* Cards */
+  @apply bg-[#111827] border border-[#1e2d42] rounded-md shadow-falcon-card;
+}
+
+@utility fc-card-raised {
+  @apply bg-[#161f33] border border-[#1e2d42] rounded-md shadow-falcon-card;
+}
+
+@utility fc-table {
+  /* Tables */
+  @apply w-full text-sm;
+  & thead tr {
+    @apply border-b border-[#1e2d42];
+  }
+  & thead th {
+    @apply px-4 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-[#7d92b0];
+  }
+  & tbody tr {
+    @apply border-b border-[#1e2d42]/50 transition-colors duration-100;
+  }
+  & tbody tr:hover {
+    @apply bg-[#19253d]/70;
+  }
+  & tbody td {
+    @apply px-4 py-2.5 text-[#e2e8f4];
+  }
+  & tbody tr:last-child {
+    @apply border-0;
+  }
+}
+
+@utility fc-input {
+  /* Inputs — mobile uses 16px to prevent iOS Safari auto-zoom on focus */
+  @apply w-full bg-[#0d1220] border border-[#1e2d42] text-[#e2e8f4] rounded-sm
+           px-3 py-2 text-base md:text-sm placeholder-[#3d5068]
+           focus:outline-hidden focus:border-[#1a6bff] focus:ring-1 focus:ring-[#1a6bff]/30
+           transition-colors;
+}
+
+@utility fc-select {
+  @apply fc-input cursor-pointer appearance-none;
+}
+
+@utility fc-btn {
+  /* Buttons */
+  @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-sm text-sm font-medium
+           transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed;
+}
+
+@utility fc-btn-primary {
+  @apply fc-btn bg-linear-to-r from-[#e8002d] to-[#a80020] text-white
+           hover:shadow-falcon-glow-red hover:brightness-110;
+}
+
+@utility fc-btn-secondary {
+  @apply fc-btn bg-[#161f33] border border-[#1e2d42] text-[#e2e8f4]
+           hover:bg-[#19253d] hover:border-[#7d92b0]/40;
+}
+
+@utility fc-btn-ghost {
+  @apply fc-btn text-[#7d92b0] hover:text-[#e2e8f4] hover:bg-[#19253d];
+}
+
+@utility fc-section-label {
+  /* Section headers */
+  @apply text-[10px] font-bold tracking-[0.15em] uppercase text-[#3d5068] px-3 py-1;
+}
+
+@utility fc-mono {
+  /* Monospace for technical data */
+  @apply font-mono text-[#00b8d4] text-xs tracking-tight;
+}
+
+@layer utilities {
+  /* ── Falcon Design System ─────────────────────────────────── */
+
+  :root {
+    /* System font stack — replaces Google Fonts Inter (no network required) */
+    --font-inter:
+      ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+      Roboto, Helvetica, Arial, sans-serif;
+
+    --falcon-bg: #080c14;
+    --falcon-surface: #0d1220;
+    --falcon-card: #111827;
+    --falcon-raised: #161f33;
+    --falcon-border: #1e2d42;
+    --falcon-hover: #19253d;
+    --falcon-active: #1d2f4a;
+    --falcon-red: #e8002d;
+    --falcon-red-dark: #a80020;
+    --falcon-blue: #1a6bff;
+    --falcon-cyan: #00b8d4;
+    --falcon-green: #00c853;
+    --falcon-amber: #ff9800;
+    --falcon-text: #e2e8f4;
+    --falcon-muted: #7d92b0;
+    --falcon-subtle: #3d5068;
+
+    color-scheme: dark;
+  }
+
+  /* ── Base reset ─────────────────────────────────────────────── */
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    background-color: var(--falcon-bg);
+    color: var(--falcon-text);
+    font-feature-settings:
+      'kern' 1,
+      'liga' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent horizontal scroll on mobile when content slightly overflows */
+    overflow-x: hidden;
+  }
+
+  /* ── Mobile viewport helpers ──────────────────────────────── */
+  /* dvh = dynamic viewport height (iOS Safari / Chrome Android) — avoids
+   the content-cut-off issue caused by `100vh` including the browser chrome. */
+  .h-screen-safe {
+    height: 100vh;
+    height: 100dvh;
+  }
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  /* Safe-area padding for notched iPhones / Android gesture bar */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* ── Custom Scrollbar ─────────────────────────────────────── */
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--falcon-surface);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--falcon-border);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--falcon-subtle);
+  }
+
+  /* ── Selection ────────────────────────────────────────────── */
+
+  ::selection {
+    background: rgba(232, 0, 45, 0.25);
+    color: #fff;
+  }
+
+  /* ── Falcon UI Components ─────────────────────────────────── */
+}
+
+/* ── Severity left-border accent on rows ──────────────────── */
+.sev-critical { border-left: 3px solid #e8002d; }
+.sev-high     { border-left: 3px solid #ff6b35; }
+.sev-medium   { border-left: 3px solid #ff9800; }
+.sev-low      { border-left: 3px solid #1a6bff; }
+.sev-info     { border-left: 3px solid #3d5068; }
+
+/* ── Pulse animation for critical status ──────────────────── */
+@keyframes critical-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,0,45,0.4); }
+  50%      { box-shadow: 0 0 0 4px rgba(232,0,45,0); }
+}
+.critical-pulse {
+  animation: critical-pulse 2s ease-in-out infinite;
+}
+
+/* ── Top-bar backdrop blur ────────────────────────────────── */
+.topbar-blur {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(8, 12, 20, 0.85);
+}
+
+/* ── Recharts dark theme overrides ───────────────────────── */
+.recharts-cartesian-grid line {
+  stroke: #1e2d42 !important;
+}
+.recharts-text {
+  fill: #7d92b0 !important;
+  font-size: 11px !important;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #161f33 !important;
+  border: 1px solid #1e2d42 !important;
+  border-radius: 4px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+}
+.recharts-tooltip-item {
+  color: #e2e8f4 !important;
+}
+
+/* Alert toast drain animation */
+@keyframes toast-drain {
+  from { width: 100%; }
+  to   { width: 0%; }
+}

@@ -1,0 +1,24 @@
+-- Migration 377: per-agent configuration overrides.
+--
+-- agents.settings is the column both halves of the agent-config feature were
+-- written against, and no migration created it. Measured before this change:
+--
+--   agents.settings exists=false
+--
+--   PUT /api/v1/agents/<id>/config-override  -> 500 {"error":"failed to update agent settings"}
+--   GET /api/v1/agents/<id>/effective-config -> 200, policy defaults only
+--
+-- The write failed with 42703 on every call. The read asked for the same column,
+-- got an error, and skipped its override branch silently — so the endpoint that
+-- reports an agent's effective configuration quietly reported it without the
+-- agent-level layer. Nothing else in the schema stores per-agent overrides:
+-- agent_policies covers the policy layer and agents.policy_id points at it, but
+-- the per-agent layer had nowhere to live.
+--
+-- JSONB rather than columns because the config vocabulary is defined in Go
+-- (hardcodedSchema in agent_config_handler.go) and an override only carries the
+-- keys that differ from the policy. Values are validated against that schema
+-- before they are written, so the freedom of the type is not a licence to store
+-- anything.
+ALTER TABLE agents
+    ADD COLUMN IF NOT EXISTS settings JSONB NOT NULL DEFAULT '{}'::jsonb;

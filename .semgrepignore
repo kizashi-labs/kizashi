@@ -1,0 +1,49 @@
+# Semgrep ignore list.
+#
+# Picked up automatically by `semgrep scan .` — both the CI SAST job
+# (.github/workflows/security.yml) and local runs. Excludes non-first-party
+# and generated files so the scan is faster (relevant to Actions cost) and the
+# findings list is not drowned in false positives from dependencies / build
+# artifacts. First-party source (server/, frontend/app, frontend/lib,
+# frontend/components, agent/, deploy/) is still fully scanned.
+
+# ── Dependencies ─────────────────────────────────────────────
+node_modules/
+vendor/
+
+# ── Build output / caches ────────────────────────────────────
+.next/
+dist/
+build/
+out/
+coverage/
+bin/
+*.tsbuildinfo
+
+# ── Generated code (reviewed at its source, not the .pb.go) ──
+*.pb.go
+*.pb.gw.go
+*_grpc.pb.go
+
+# ── Minified / bundled assets ────────────────────────────────
+*.min.js
+*.min.css
+*.bundle.js
+
+# ── Lockfiles (hashes trigger secret/entropy false positives) ─
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+go.sum
+
+# ── Binaries / archives ──────────────────────────────────────
+*.exe
+*.dll
+*.so
+*.dylib
+*.zip
+*.tar.gz
+*.gz
+
+# ── Test fixtures (intentional dummy secrets / sample payloads) ─
+**/testdata/

@@ -1,0 +1,286 @@
+name: Integration (nightly)
+
+# E2E (Playwright) and k6 smoke are heavy, late-stage integration jobs that
+# build and start the full API (+ the frontend for E2E). They used to run on
+# every push/PR inside ci.yml, where `concurrency: cancel-in-progress` routinely
+# cancelled them before they finished during high merge velocity — so they
+# rarely produced a usable signal yet still consumed runner minutes on every
+# push. Moved here to run once nightly (+ on demand via workflow_dispatch),
+# giving one reliable daily signal decoupled from per-push churn. Each job is
+# self-contained (builds the API/frontend it needs), so no cross-job `needs`.
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 03:00 JST daily
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ── E2E Tests ─────────────────────────────────────────────────
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    # Nightly (no cross-job needs — builds its own frontend + API below).
+    # Suite stabilized to 281 passed /
+    # 0 failed / 9 skipped at workers=2, retries=2 (~11min) by fixing the login
+    # selector, fallback-admin token, dev-server compile hang, the billing
+    # WebSocket-URL crash, and bypassing the auth rate limiters in CI
+    # (DISABLE_LOGIN_RATE_LIMIT). 9 skipped = MFA tests needing an MFA-enabled
+    # seed user + conditional data-dependent skips. 30min hard cap as backstop.
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: edrplatform
+          POSTGRES_USER: edr
+          POSTGRES_PASSWORD: testpassword
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U edr -d edrplatform"
+          --health-interval 10s --health-retries 5
+      nats:
+        image: nats:2.10-alpine
+        ports: ["4222:4222"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm install --prefer-offline
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Set up Go & start services
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: server/go.mod
+
+      - name: Run migrations & start API
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform
+          NATS_URL: nats://localhost:4222
+          JWT_SECRET: ci-jwt-key-for-testing-only-abcd1234
+          ADMIN_PASSWORD: CiAdm1n!2026
+          API_PORT: "8080"
+          # E2E runs many logins (incl. intentional failures) from one IP;
+          # disable the brute-force lockout so it doesn't 429 legit logins.
+          DISABLE_LOGIN_RATE_LIMIT: "true"
+          # Seed an MFA(TOTP)-enabled user (mfa@example.com) so the MFA flow
+          # specs can run. Test/CI only — never set in production.
+          SEED_E2E_MFA_USER: "true"
+        run: |
+          for f in migrations/*.sql; do psql "$DATABASE_URL" -f "$f" 2>/dev/null || true; done
+
+          # Build before starting, then gate on /health. This was
+          # `go run ./cmd/api/ & sleep 5`, which has no readiness check at all — it
+          # only worked because the frontend build that follows takes minutes and
+          # incidentally gave the API time to compile. A compile error or a crashed
+          # API surfaced much later as opaque Playwright failures instead of a clear
+          # "the API never came up" here.
+          go build -o /tmp/api-server ./cmd/api/
+
+          /tmp/api-server > /tmp/api.log 2>&1 &
+          api_pid=$!
+
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/health >/dev/null 2>&1; then
+              echo "API healthy after ${i}s."
+              exit 0
+            fi
+            if ! kill -0 "$api_pid" 2>/dev/null; then
+              echo "::error::API exited before becoming healthy. Log:"
+              cat /tmp/api.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "::error::API did not become healthy within 60s. Log:"
+          cat /tmp/api.log
+          exit 1
+
+      # Production build, not `next dev`. The dev server compiles routes
+      # on-demand (e.g. /login took 55s, /dashboard 27s in CI), which blows
+      # past Playwright's per-action timeout and made E2E hang for ~2h. A
+      # prebuilt server serves pages instantly. API calls use the relative
+      # /api/v1 path proxied by next.config rewrites() to API_URL.
+      - name: Build & start frontend (production)
+        working-directory: frontend
+        env:
+          API_URL: http://localhost:8080
+          NEXT_PUBLIC_API_URL: /api/v1
+        run: |
+          npm run build
+          npm start &
+
+      - name: Wait for services
+        run: |
+          echo "Waiting for API (port 8080)..."
+          timeout 90 sh -c 'until curl -sf http://localhost:8080/health; do sleep 2; done'
+          echo "API ready. Waiting for frontend (port 3000)..."
+          timeout 90 sh -c 'until curl -sf http://localhost:3000; do sleep 2; done'
+          echo "All services ready."
+
+      - name: Run E2E tests
+        working-directory: frontend
+        env:
+          BASE_URL: http://localhost:3000
+          E2E_BASE_URL: http://localhost:3000
+          # Seeded DB user (admin@example.com). The 'admin' fallback user's token
+          # has a non-UUID user_id that protected routes reject, so storageState
+          # built from it is unusable.
+          E2E_ADMIN_USER: admin@example.com
+          E2E_ADMIN_PASS: ${{ secrets.E2E_ADMIN_PASS || 'CiAdm1n!2026' }}
+        run: npx playwright test --reporter=html
+
+      - name: Upload test results
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+
+  # ── Load Tests (smoke only, non-blocking) ────────────────────
+  load-test:
+    timeout-minutes: 20
+    name: Load Test (k6 smoke)
+    runs-on: ubuntu-latest
+    # Nightly (no cross-job needs — builds its own API below). Non-blocking smoke:
+    # a k6 threshold miss should not fail the whole nightly run.
+    continue-on-error: true
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: edrplatform
+          POSTGRES_USER: edr
+          POSTGRES_PASSWORD: testpassword
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U edr -d edrplatform"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      nats:
+        image: nats:2.10-alpine
+        ports: ["4222:4222"]
+        options: >-
+          --health-cmd "nc -z localhost 4222 || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Run migrations & start API
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform
+          NATS_URL: nats://localhost:4222
+          JWT_SECRET: ci-jwt-key-for-testing-only-abcd1234
+          ADMIN_PASSWORD: CiAdm1n!2026
+          API_PORT: "8080"
+        run: |
+          for f in migrations/*.sql; do psql "$DATABASE_URL" -f "$f" 2>/dev/null || true; done
+
+          # Build before starting. This was `go run ./cmd/api/ &`, which backgrounds
+          # the *compile* as well: with a cold build cache the API was still linking
+          # when the 30s health window expired, and the step died with a bare
+          # `exit 124` and no API output to explain it (observed 2026-07-20). A
+          # compile error was equally invisible for the same reason.
+          go build -o /tmp/api-server ./cmd/api/
+
+          /tmp/api-server > /tmp/api.log 2>&1 &
+          api_pid=$!
+
+          # The wait now covers process startup only, not compilation. Bail out early
+          # (with the API's own log) if it exits instead of coming up, rather than
+          # burning the whole window on a process that is already dead.
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/health >/dev/null 2>&1; then
+              echo "API healthy after ${i}s."
+              exit 0
+            fi
+            if ! kill -0 "$api_pid" 2>/dev/null; then
+              echo "::error::API exited before becoming healthy. Log:"
+              cat /tmp/api.log
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "::error::API did not become healthy within 60s. Log:"
+          cat /tmp/api.log
+          exit 1
+
+      - name: Install k6
+        timeout-minutes: 10
+        env:
+          K6_VERSION: v2.1.0
+        run: |
+          # Fetch the pinned release binary instead of adding the k6 apt repo. The
+          # repo route imported the signing key from a keyserver, which needs dirmngr
+          # and a /root/.gnupg the runner image no longer provides — it failed with
+          # "can't connect to the dirmngr" (2026-07-20). This drops the keyserver,
+          # apt and GPG dependencies entirely and pins the version, so the step no
+          # longer breaks when the upstream repo or a keyserver has a bad day.
+          base="https://github.com/grafana/k6/releases/download/${K6_VERSION}"
+          asset="k6-${K6_VERSION}-linux-amd64"
+
+          curl -fsSL "${base}/${asset}.tar.gz" -o /tmp/k6.tar.gz
+          curl -fsSL "${base}/k6-${K6_VERSION}-checksums.txt" -o /tmp/k6-checksums.txt
+
+          # Verify against the published checksum before trusting the binary.
+          expected="$(awk -v f="${asset}.tar.gz" '$2 == f || $2 == "*"f {print $1}' /tmp/k6-checksums.txt)"
+          if [ -z "$expected" ]; then
+            echo "::error::No checksum published for ${asset}.tar.gz"
+            cat /tmp/k6-checksums.txt
+            exit 1
+          fi
+          echo "${expected}  /tmp/k6.tar.gz" | sha256sum -c -
+
+          tar -xzf /tmp/k6.tar.gz -C /tmp
+          sudo install -m 0755 "/tmp/${asset}/k6" /usr/local/bin/k6
+          k6 version
+
+      - name: Run smoke test
+        working-directory: deploy/loadtest
+        env:
+          BASE_URL: http://localhost:8080
+          ADMIN_EMAIL: admin@example.com
+          ADMIN_PASSWORD: CiAdm1n!2026
+        run: |
+          k6 run \
+            --env BASE_URL=$BASE_URL \
+            --env ADMIN_EMAIL=$ADMIN_EMAIL \
+            --env ADMIN_PASSWORD=$ADMIN_PASSWORD \
+            --duration 20s \
+            --vus 3 \
+            --summary-export=summary.json \
+            scenarios/api-smoke.js
+
+      - name: Upload k6 summary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: k6-smoke-summary
+          path: deploy/loadtest/summary.json
+          retention-days: 7
+

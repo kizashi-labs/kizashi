@@ -1,0 +1,20 @@
+[
+  {
+    "id": "fixture-a1",
+    "mitre_technique": "T1059.001",
+    "title": "[Sigma] Encoded PowerShell Command Execution",
+    "created_at": "2026-01-01T00:00:13Z"
+  },
+  {
+    "id": "fixture-a2",
+    "ai_mitre_tags": ["T1003.001"],
+    "title": "[CRED] LSASSメモリ・アクセス（認証情報ダンプの疑い）",
+    "created_at": "2026-01-01T00:00:24Z"
+  },
+  {
+    "id": "fixture-a3",
+    "mitre_technique": "T1021",
+    "title": "[Sigma] SMB/Windows Admin Share Lateral Movement",
+    "created_at": "2026-01-01T00:00:34Z"
+  }
+]

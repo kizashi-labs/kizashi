@@ -1,0 +1,223 @@
+name: Merge Gate (番号の衝突)
+
+# ★ このワークフローに paths / paths-ignore を足さないでください。
+#   常に走ることが唯一の存在理由です（理由は下記）。
+#
+# ── 何を相手にしているのか ──
+#
+# migration 番号と負債台帳 ID の衝突は、**PR 単体では原理的に検出できません**。
+# GitHub は各 PR を「相手を含まないベース」に対して検査するので、衝突は
+# 組み合わせにしか存在せず、どちらの実行でも緑になります。2026-08-13 に
+# #716 と #671 が両方緑のままマージされ、main で 382 が重複しました
+# （docs/debt/P2.md の P2-6 追記）。
+#
+# 本来の対処はブランチ保護の
+# 「Require branches to be up to date before merging」です。これを有効にすると
+# main が動いた PR は再検査を強制され、組み合わせが実際に検査されます。
+# **しかし private リポジトリでルールセットが強制されるには GitHub Team
+# （個人アカウントなら Pro）が必要で、本リポジトリのプランでは効きません。**
+# 有料機能に依存せず同じ穴を塞ぐのが、このワークフローの目的です。
+#
+# ── 2 つのジョブ ──
+#
+# 1. consistency — PR と main への push で毎回、一意性を検査する。
+#    ci.yml でも同じ検査は走りますが、あちらは paths-ignore で docs のみの
+#    変更では起動しません。こちらは常に走るので、**docs のみの push でも
+#    main が赤くなったことがその場で分かります**。
+#
+# 2. radar — main への push でだけ走り、**開いている PR 全部**を新しい main と
+#    突き合わせます。「先にマージされた側が、後続の PR と衝突していないか」を
+#    マージ前に知るための唯一の経路です。ブロックはできません（それには
+#    ブランチ保護が要る）。できるのは、2 つ目をマージする前に赤で知らせる
+#    ことだけです。radar が赤いときの意味は「main が壊れている」ではなく
+#    **「開いている PR のどれかが、このままだと main を壊す」**です。
+#
+# ci.yml からパスフィルタを外す案は採りませんでした。あちらのコメントに
+# 「1 PR あたり 40 分超を消費し、Actions の予算を 2 度使い切った」という実測が
+# 残っています。こちらは DB もサービスコンテナも要らず、テスト実行そのものは
+# 0.2 秒、radar は Go すら使いません。
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# 権限は read のみで副作用が無いため、先行する実行は打ち切ってよい。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consistency:
+    timeout-minutes: 10
+    # ↓ ブランチ保護が使えるプランに移った場合、必須に指定するのはこの名前です。
+    name: Cross-PR consistency (migration / debt ledger)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: server/go.mod
+
+      # DB もサービスコンテナも不要。-run で実行を絞るだけなので、
+      # パッケージのコンパイルは通常どおり行われる（コンパイルに DB は要らない）。
+      - name: migration 番号と負債台帳 ID の一意性
+        working-directory: server
+        run: |
+          go test ./internal/store/ -count=1 -v \
+            -run 'TestMigrationNumbers|TestGrandfatheredMigrationDuplicates|TestDebtLedger'
+
+  radar:
+    timeout-minutes: 10
+    name: Open PR collision radar
+    # PR でも走らせるが、そちらでは**落とさない**（下の DRY_RUN）。
+    #
+    # 落とさない理由: PR 上でこれが赤くなると、「別の PR の番号が衝突している」
+    # という他人の問題で自分の PR が赤くなる。責任の所在が読めない赤は、
+    # やがて無視される赤になる。
+    #
+    # それでも走らせる理由: 走らないジョブは、動くことが一度も確かめられない。
+    # main へのマージが初回実行になると、シェルの綴り間違い 1 つで「main の赤を
+    # 防ぐ仕組みが main を赤くする」。PR 上の実行は、その配線を毎回確かめている。
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # 開いている PR が「追加/リネームした」migration ファイルの番号を集め、
+      # いま main に在る番号と突き合わせる。PR の差分はマージベース基準なので、
+      # 「PR が追加した番号が既に main にも在る」= 衝突である。
+      #
+      # 判定できないときは必ず「衝突なし」ではなく **落ちる** 側に倒す
+      # （取りこぼして緑になるより、余分に赤いほうがまし）。
+      - name: 開いている PR と main の migration 番号を突き合わせる
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # push(main) のときだけ落とす。PR では配線の確認だけして緑で終わる。
+          DRY_RUN: ${{ github.event_name != 'push' }}
+        run: |
+          set -euo pipefail
+
+          # 番号はディレクトリごとの名前空間である。server/migrations/*.sql は
+          # migrate.go が起動時に流す本流、server/migrations/operator/*.sql は
+          # 運用者が手で流す別系列で、採番も別。internal/store の番号一意性テストも
+          # e.IsDir() で弾いて最上位しか見ておらず、そちらが正である。
+          #
+          # 以前はここが basename だけを見ていたため、operator/001 が最上位の
+          # 001_init_schema.sql と衝突扱いになった。実害は「その PR が開いている
+          # あいだじゅう main の Merge Gate が赤いまま」で、恒常的に赤い門は
+          # 無視される門になる——このワークフロー自身が上のコメントでそう書いている。
+          #
+          # `|| true` はディレクトリが main にまだ無い場合のため。set -e と
+          # pipefail の下では ls の失敗でジョブごと落ちる。
+          nums_in() {
+            ls "$1"/*.sql 2>/dev/null | sed 's|.*/||; s|_.*||' | sort -u || true
+          }
+          echo "main の migration 番号: $(nums_in server/migrations | tr '\n' ' ')"
+          echo "main の operator 番号: $(nums_in server/migrations/operator | tr '\n' ' ')"
+
+          # 対象は「これからマージされうる PR」だけ。draft と、長く動いていない
+          # ブランチは除外する。
+          #
+          # 除外が要る理由は実測で分かった。初回実行で 15 件の衝突が出たが、
+          # 全部 #525（2026-07-22 作成、以後 22 日間まったく更新なし、73 コミット）
+          # 由来だった。あのブランチの 315〜329 は別経路で main に入っており、
+          # 事実上死んでいる。除外しなければ **初日から main への push が毎回赤**
+          # になる。それは「やがて無視される赤」であって、検知ではない。
+          #
+          # ただし除外は**黙って**行わない。毎回、除外した PR を名指しで出す。
+          # 静かな除外は、検査が最も弱い場所を見えなくする（同じ理由で
+          # migration_numbering_test.go は grandfather 一覧の正直さを別テストで
+          # 守っている）。#525 が動き出せば自動的に対象へ戻る。
+          STALE_DAYS=14
+          now="$(date +%s)"
+
+          meta="$(curl -sS --fail-with-body \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/pulls?state=open&per_page=100" \
+            | jq -r '.[] | "\(.number)\t\(.draft)\t\(.updated_at)"')"
+
+          if [ -z "$meta" ]; then
+            echo "開いている PR はありません。"
+            exit 0
+          fi
+
+          prs=""
+          while IFS=$'\t' read -r num is_draft updated; do
+            [ -z "$num" ] && continue
+            age=$(( (now - $(date -d "$updated" +%s)) / 86400 ))
+            if [ "$is_draft" = "true" ]; then
+              echo "除外: PR #$num (draft)"
+            elif [ "$age" -gt "$STALE_DAYS" ]; then
+              echo "除外: PR #$num (${age} 日間更新なし > ${STALE_DAYS} 日)"
+            else
+              prs="$prs $num"
+            fi
+          done <<< "$meta"
+
+          if [ -z "$prs" ]; then
+            echo "対象となる PR はありません（全部 draft か stale）。"
+            exit 0
+          fi
+          echo "対象の PR:$prs"
+
+          # 注釈のレベルは落とすかどうかに合わせる。緑のジョブに ::error:: が
+          # 付くと「赤くないのにエラー」という読めない信号になり、やがて注釈
+          # そのものが無視される。
+          if [ "$DRY_RUN" = "true" ]; then level=warning; else level=error; fi
+
+          collisions=0
+          for pr in $prs; do
+            files="$(curl -sS --fail-with-body \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/pulls/$pr/files?per_page=100" \
+              | jq -r '.[] | select(.status == "added" or .status == "renamed") | .filename' \
+              | grep '^server/migrations/.*\.sql$' || true)"
+            [ -z "$files" ] && continue
+
+            for f in $files; do
+              num="$(basename "$f" | sed 's|_.*||')"
+              # 突き合わせは同じディレクトリの中だけで行う（上の nums_in 参照）。
+              dir="$(dirname "$f")"
+              dir_nums="$(nums_in "$dir")"
+              # here-string にするのは ci.yml と同じ理由です (pipefail + `grep -q`
+              # の SIGPIPE で、**一致したときに「一致しなかった」を返す**)。
+              # 番号の集合は今は小さいので実害は出ていませんが、増えれば
+              # 「衝突しているのに衝突していないと言う」門になります。
+              if grep -qx "$num" <<<"$dir_nums"; then
+                echo "::${level}::PR #$pr が追加する $f の番号 $num は、すでに main の $dir にあります。マージすると main が赤くなります。"
+                collisions=$((collisions + 1))
+              fi
+            done
+          done
+
+          if [ "$collisions" -gt 0 ]; then
+            {
+              echo "## ⚠ 開いている PR に migration 番号の衝突があります"
+              echo
+              echo "$collisions 件。**main は壊れていません** — マージすると壊れます。"
+              echo "該当 PR で番号を取り直してください。冪等でない migration を"
+              echo "リネームしない原則については docs/debt/P2.md の P2-6 を参照。"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "::warning::衝突 $collisions 件（PR 実行のため落としません。main への push で落ちます）"
+              exit 0
+            fi
+            exit 1
+          fi
+
+          echo "対象の PR に番号の衝突はありません。"

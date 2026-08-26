@@ -1,0 +1,57 @@
+# golangci-lint configuration (v2 format).
+#
+# 段階導入方針: 既存の go vet / staticcheck に加えて、実バグ・セキュリティ・
+# リソースリークを捕まえる厳選セットを有効化する。CI では --new-from-merge-base で
+# 「新規・変更コードのみ」に適用し、既存バックログの一括修正は強制しない
+# （リポジトリの staticcheck ラチェット文化に合わせる）。ローカルでは全体スキャン可。
+version: "2"
+
+run:
+  # tests も対象にするが、テスト特有のノイズは exclusions で除外する。
+  # YARA は cgo/libyara 必須のため既定の pure-Go ビルド（CI と同じ）でリントする。
+  tests: true
+
+linters:
+  # 既存CIの `go vet` と `staticcheck ./...` と重複しない、追加価値のあるリンターに絞る
+  # （govet / staticcheck は別ステップで実行済。misspell は日本語混在で誤検知が多く除外）。
+  default: none
+  enable:
+    # バグ検出
+    - errcheck      # 戻り値のエラー無視を検出
+    - ineffassign   # 無効な代入
+    # セキュリティ（EDR製品として重視）
+    - gosec
+    # リソースリーク（HTTP多用のため重要）
+    - bodyclose     # HTTP response body の未クローズ
+    # NOTE: sqlclosecheck は database/sql 向けで、本コードベースは pgx(pgxpool) のため
+    # if/else でクエリ結果を1つの defer Close で閉じる正当なパターンを誤検知する
+    # （棚卸しで6件すべて誤検知＝実リーク0と確認）。pgx 不適合のため無効化した。
+    # rowserrcheck も同様に database/sql 向けだが誤検知0のため当面は残置。
+    - rowserrcheck  # sql.Rows.Err() の未チェック
+
+  settings:
+    gosec:
+      excludes:
+        - G115 # 整数オーバーフロー変換: 誤検知が多くノイズになるため除外
+        - G104 # 未チェックのエラー: errcheck と重複するため除外
+        - G101 # ハードコード認証情報: フィールド名等で誤検知が多い。実シークレットは
+               #       gitleaks(security.yml) でカバーするため除外
+
+  exclusions:
+    generated: lax
+    # テストコードはセキュリティ/エラーチェックのノイズが多いため緩和する。
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+          - bodyclose
+      # 生成物・マイグレーション等は対象外。
+      - path: (migrations|\.pb\.go)
+        linters:
+          - errcheck
+          - gosec
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

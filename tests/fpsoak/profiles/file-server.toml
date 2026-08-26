@@ -1,0 +1,291 @@
+# ファイルサーバ (Windows) — 大量ファイル操作の常態。
+#
+# ランサム検知 (file_burst.go / T1486) は「1プロセスが短時間に多数ファイルを
+# 破壊的操作」で発火する。ファイルサーバでは、共有フォルダの一括整理・
+# アーカイブ・ウイルススキャン・バックアップ前処理が日常的にその形を取る。
+# 閾値が実運用に耐えるかを決めるのがこのプロファイル。
+
+name        = "file-server"
+os          = "windows"
+os_version  = "Windows Server 2022 Standard"
+description = "ファイルサーバ: SMB共有、大量ファイルI/O、シャドウコピー、定期スキャン"
+host_prefix = "fs"
+fleet_weight = 8
+subnet      = "10.20.255.0/24"
+users       = ["svc_fileshare", "svc_backup"]
+
+[rates]
+process    = 60
+file       = 4000
+network    = 1500
+dns        = 120
+registry   = 60
+auth       = 40
+image_load = 100
+
+# ─── プロセス ────────────────────────────────────────────────
+
+[[processes]]
+weight   = 25
+name     = "System"
+path     = "System"
+parent   = "System"
+user     = 'NT AUTHORITY\SYSTEM'
+integrity = "System"
+cmdlines = ["System"]
+
+[[processes]]
+weight   = 20
+name     = "svchost.exe"
+path     = 'C:\Windows\System32\svchost.exe'
+parent   = "services.exe"
+user     = 'NT AUTHORITY\SYSTEM'
+integrity = "System"
+company  = "Microsoft Corporation"
+original_file_name = "svchost.exe"
+cmdlines = [
+  'C:\Windows\system32\svchost.exe -k LocalServiceNetworkRestricted -p',
+  'C:\Windows\system32\svchost.exe -k netsvcs -p -s Schedule',
+]
+
+# シャドウコピーの作成。vssadmin は削除(T1490)が攻撃指標だが、
+# 作成・一覧は正規のバックアップ運用。ルールが動詞を見ずに
+# vssadmin だけでマッチしていると必ず誤爆する。
+[[processes]]
+weight   = 15
+name     = "vssadmin.exe"
+path     = 'C:\Windows\System32\vssadmin.exe'
+parent   = "svchost.exe"
+user     = 'NT AUTHORITY\SYSTEM'
+integrity = "System"
+company  = "Microsoft Corporation"
+original_file_name = "VSSADMIN.EXE"
+cmdlines = [
+  "vssadmin create shadow /for=D:",
+  "vssadmin list shadows",
+  "vssadmin list writers",
+]
+
+[[processes]]
+weight   = 15
+name     = "robocopy.exe"
+path     = 'C:\Windows\System32\robocopy.exe'
+parent   = "cmd.exe"
+user     = 'CORP\svc_backup'
+integrity = "High"
+company  = "Microsoft Corporation"
+original_file_name = "robocopy.exe"
+cmdlines = [
+  'robocopy D:\share E:\stage\{{date}} /MIR /R:1 /W:1 /MT:16 /NP /LOG+:E:\logs\robocopy-{{date}}.log',
+  'robocopy D:\share\経理 \\backup01\vault\経理 /E /Z /R:2',
+]
+
+[[processes]]
+weight   = 15
+name     = "MsMpEng.exe"
+path     = 'C:\Program Files\Windows Defender\MsMpEng.exe'
+parent   = "services.exe"
+user     = 'NT AUTHORITY\SYSTEM'
+integrity = "System"
+company  = "Microsoft Corporation"
+original_file_name = "MsMpEng.exe"
+cmdlines = ['"MsMpEng.exe"']
+
+[[processes]]
+weight   = 10
+name     = "powershell.exe"
+path     = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+parent   = "taskeng.exe"
+user     = 'NT AUTHORITY\SYSTEM'
+integrity = "System"
+company  = "Microsoft Corporation"
+original_file_name = "PowerShell.EXE"
+cmdlines = [
+  'powershell.exe -NoProfile -File "E:\scripts\Purge-OldFiles.ps1" -Days 90',
+  'powershell.exe -NoProfile -Command "Get-SmbSession | Measure-Object"',
+]
+
+# ─── ファイル ────────────────────────────────────────────────
+
+# 90日超のファイルを一括削除する夜間バッチ。単一プロセスによる
+# 大量 delete という、ランサム検知の閾値近傍にある正規運用。
+[[files]]
+weight  = 30
+process = "powershell.exe"
+actions = ["delete"]
+size_range = [4096, 104857600]
+paths = [
+  'D:\share\部門共有\アーカイブ\{{date}}\{{rand}}.tmp',
+  'D:\share\部門共有\ゴミ箱\{{rand}}.old',
+]
+
+[[files]]
+weight  = 30
+process = "robocopy.exe"
+actions = ["create", "modify"]
+size_range = [1024, 4294967296]
+paths = [
+  'E:\stage\{{date}}\経理\{{rand}}.xlsx',
+  'E:\stage\{{date}}\設計\{{rand}}.dwg',
+  'E:\stage\{{date}}\営業\{{rand}}.pptx',
+]
+
+[[files]]
+weight  = 25
+process = "System"
+actions = ["create", "modify", "rename", "delete"]
+size_range = [512, 2147483648]
+paths = [
+  'D:\share\部門共有\{{rand}}.docx',
+  'D:\share\経理\月次\{{date}}-{{randint}}.xlsx',
+  'D:\share\設計\CAD\{{rand}}.dwg',
+]
+
+[[files]]
+weight  = 15
+process = "MsMpEng.exe"
+actions = ["modify"]
+size_range = [1024, 1048576]
+paths = ['C:\ProgramData\Microsoft\Windows Defender\Scans\History\Results\Quick\{{rand}}']
+
+# ─── ネットワーク ────────────────────────────────────────────
+
+[[network]]
+weight   = 50
+process  = "System"
+proto    = "tcp"
+ports    = [445]
+hostname = "wks.corp.example.co.jp"
+hosts    = [
+  "10.20.1.11", "10.20.1.12", "10.20.1.13", "10.20.1.14", "10.20.1.15",
+  "10.20.2.21", "10.20.2.22", "10.20.3.31", "10.20.3.32", "10.20.4.41",
+]
+bytes_sent_range = [1000, 200000000]
+bytes_recv_range = [1000, 50000000]
+
+[[network]]
+weight   = 20
+process  = "robocopy.exe"
+proto    = "tcp"
+ports    = [445]
+hostname = "backup01.corp.example.co.jp"
+hosts    = ["10.20.255.50"]
+bytes_sent_range = [1000000, 8000000000]
+bytes_recv_range = [1000, 500000]
+
+[[network]]
+weight   = 15
+process  = "svchost.exe"
+proto    = "tcp"
+ports    = [389, 88, 445]
+hostname = "dc01.corp.example.co.jp"
+hosts    = ["10.20.255.5", "10.20.255.6"]
+bytes_sent_range = [500, 200000]
+bytes_recv_range = [500, 500000]
+
+[[network]]
+weight   = 15
+process  = "MsMpEng.exe"
+proto    = "tcp"
+ports    = [443]
+hostname = "wdcp.microsoft.com"
+hosts    = ["20.42.65.92", "13.107.4.50"]
+bytes_sent_range = [1000, 100000]
+bytes_recv_range = [5000, 200000000]
+
+# ─── DNS ─────────────────────────────────────────────────────
+
+[[dns]]
+weight  = 50
+process = "svchost.exe"
+queries = ["dc01.corp.example.co.jp", "dc02.corp.example.co.jp", "corp.example.co.jp"]
+
+[[dns]]
+weight  = 30
+process = "robocopy.exe"
+queries = ["backup01.corp.example.co.jp"]
+
+[[dns]]
+weight  = 20
+process = "MsMpEng.exe"
+queries = ["wdcp.microsoft.com", "definitionupdates.microsoft.com"]
+
+# ─── レジストリ ──────────────────────────────────────────────
+
+[[registry]]
+weight  = 50
+process = "svchost.exe"
+actions = ["modify"]
+keys    = [
+  'HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Shares',
+  'HKLM\SYSTEM\CurrentControlSet\Control\SecurePipeServers\winreg',
+]
+values  = ["部門共有", "経理"]
+data    = ["CSCFlags=0", "MaxUses=4294967295"]
+
+[[registry]]
+weight  = 30
+process = "MsMpEng.exe"
+actions = ["modify"]
+keys    = ['HKLM\SOFTWARE\Microsoft\Windows Defender\Signature Updates']
+values  = ["SignatureLastUpdated"]
+data    = ["{{rand}}"]
+
+[[registry]]
+weight  = 20
+process = "vssadmin.exe"
+actions = ["create", "modify"]
+keys    = ['HKLM\SYSTEM\CurrentControlSet\Services\VSS\Diag']
+values  = ["{{rand}}"]
+data    = ["{{rand}}"]
+
+# ─── 認証 ────────────────────────────────────────────────────
+
+# SMB 越しのネットワークログオン。ファイルサーバでは常時大量に発生し、
+# パスワードスプレー検知 (1ソース→多アカウント) の逆方向、
+# すなわち「多ソース→同一サーバ」の形になる。
+[[auth]]
+weight  = 70
+users   = ['CORP\sato', 'CORP\suzuki', 'CORP\tanaka', 'CORP\ito', 'CORP\yamamoto']
+actions = ["login"]
+success = true
+methods = ["token"]
+sources = ["10.20.1.11", "10.20.1.12", "10.20.2.21", "10.20.3.31", "10.20.4.41"]
+
+[[auth]]
+weight  = 20
+users   = ['CORP\svc_backup']
+actions = ["login"]
+success = true
+methods = ["password"]
+sources = ["10.20.255.50"]
+
+# 期限切れパスワードによる失敗。実運用では毎日一定数出る。
+[[auth]]
+weight  = 10
+users   = ['CORP\suzuki', 'CORP\tanaka']
+actions = ["failed"]
+success = false
+methods = ["password"]
+sources = ["10.20.1.12", "10.20.3.31"]
+failure_reason = "The user's password must be changed before signing in"
+
+# ─── モジュールロード ────────────────────────────────────────
+
+[[image_loads]]
+weight  = 60
+process = "svchost.exe"
+signed  = true
+signer  = "Microsoft Windows"
+paths   = [
+  'C:\Windows\System32\srvsvc.dll',
+  'C:\Windows\System32\srv2.sys',
+  'C:\Windows\System32\ntdll.dll',
+]
+
+[[image_loads]]
+weight  = 40
+process = "MsMpEng.exe"
+signed  = true
+signer  = "Microsoft Corporation"
+paths   = ['C:\ProgramData\Microsoft\Windows Defender\Definition Updates\{{rand}}\mpengine.dll']

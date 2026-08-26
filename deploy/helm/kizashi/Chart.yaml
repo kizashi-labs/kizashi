@@ -1,0 +1,14 @@
+apiVersion: v2
+name: kizashi
+description: Kizashi - Enterprise Endpoint Detection & Response
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - edr
+  - security
+  - endpoint
+  - detection
+  - response
+maintainers:
+  - name: Kizashi Team

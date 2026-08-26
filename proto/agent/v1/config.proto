@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package agent.v1;
+
+option go_package = "github.com/edr-platform/proto/gen/go/agent/v1";
+
+// ─── Agent Configuration ──────────────────────────────────────
+
+message AgentConfig {
+  uint64 version              = 1;
+  CollectionConfig collection = 2;
+  ResponseConfig   response   = 3;
+  repeated YaraRule yara_rules = 4;
+  repeated SigmaRule sigma_rules = 5;
+}
+
+message CollectionConfig {
+  // Intervals
+  uint32 event_batch_interval_ms  = 1; // default: 500ms
+  uint32 heartbeat_interval_sec   = 2; // default: 30s
+  uint32 config_poll_interval_sec = 3; // default: 300s
+
+  // Feature toggles
+  bool process_monitoring   = 10;
+  bool file_monitoring      = 11;
+  bool network_monitoring   = 12;
+  bool dns_monitoring       = 13;
+  bool registry_monitoring  = 14; // Windows only
+  bool auth_monitoring      = 15;
+  bool yara_scan_on_exec    = 16;
+  bool memory_scanning      = 17;
+
+  // Scope
+  repeated string monitored_paths  = 20;
+  repeated string excluded_paths   = 21;
+  repeated string excluded_processes = 22;
+  repeated string excluded_networks  = 23; // CIDR notation
+
+  // Performance
+  uint32 max_events_per_second = 30; // adaptive throttling
+  uint32 local_buffer_size_mb  = 31; // offline buffer
+}
+
+message ResponseConfig {
+  bool auto_response_enabled = 1;
+
+  // Auto-isolation triggers
+  uint32 auto_isolate_severity_threshold = 2; // 0-10, default 9
+  repeated string auto_isolate_rule_ids  = 3; // specific rules that trigger isolation
+
+  // Auto-kill process triggers
+  uint32 auto_kill_severity_threshold  = 4; // default 8
+  repeated string auto_kill_rule_ids   = 5;
+
+  // Auto-quarantine file triggers
+  uint32 auto_quarantine_severity_threshold = 6; // default 7
+  repeated string auto_quarantine_rule_ids  = 7;
+
+  // Isolation whitelist (EDR server + DNS are always allowed)
+  repeated string isolation_allowed_ips   = 8;  // CIDR
+  repeated uint32 isolation_allowed_ports = 9;
+}
+
+message YaraRule {
+  string id       = 1;
+  string name     = 2;
+  string content  = 3;
+  uint32 severity = 4;
+}
+
+message SigmaRule {
+  string id       = 1;
+  string name     = 2;
+  string content  = 3;
+  uint32 severity = 4;
+  string platform = 5;
+}
+
+message ConfigRequest {
+  string agent_id      = 1;
+  uint64 current_version = 2; // server returns empty if up-to-date
+}

@@ -1,0 +1,105 @@
+package detection
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+// suppressionQuerier は、この loader が pool に求めるものだけを切り出した形。
+//
+// **偽物を差せるようにするために置いています。** 走査が途中で失敗したことが
+// 呼び出し側に伝わるか（`rows.Err()` を返しているか）は、実 DB では狙って
+// 起こせません —— 起こせない失敗は、検査できない失敗です。
+//
+// `*pgxpool.Pool` はそのまま満たすので、呼び出し側は変わりません。
+type suppressionQuerier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
+// PoolSuppressionLoader loads active suppression rules straight from a pgx pool.
+//
+// ここに置いてある理由。抑制ルールを読む SQL は cmd/detection/adapter.go にしか
+// 無く、server-api 側から同じものを読むには**同じクエリをもう 1 箇所に書く**しか
+// なかった。列の追加や `is_active` の意味を変えたときに片方だけ直る形で、この
+// リポジトリが繰り返し踏んできた「二重管理」そのものである
+// （検知ルールの二重管理と同じ構図: docs/検知ルールの二重管理とデプロイ.md）。
+//
+// 実装を 1 つにして、cmd/detection の storeAdapter はこれに委譲する。
+// 両プロセスが同じ行・同じ解釈を見ることが、抑制では特に重要になる——
+// 「片方のプロセスでは抑制されるがもう片方では出る」は、運用者からは
+// 「抑制が効いたり効かなかったりする」としか見えない。
+type PoolSuppressionLoader struct {
+	pool suppressionQuerier
+}
+
+// NewPoolSuppressionLoader returns a SuppressionLoader backed by pool.
+func NewPoolSuppressionLoader(pool *pgxpool.Pool) *PoolSuppressionLoader {
+	// **nil は nil のまま持ちます。** interface に nil の *pgxpool.Pool を
+	// 入れると「nil でない interface」になり、下の nil 検査をすり抜けて
+	// panic します。呼び出し側は pool が無い構成でもここを通ります。
+	if pool == nil {
+		return &PoolSuppressionLoader{}
+	}
+	return &PoolSuppressionLoader{pool: pool}
+}
+
+// ListActiveSuppressions satisfies SuppressionLoader. It returns every active,
+// non-expired suppression rule for the in-memory cache.
+// ListActiveSuppressions returns the rules that actually suppress alerts.
+//
+// **フラグは 2 つある。** いまは store.SuppressionStore が両方に同じ値を
+// 書くので、新しく作られる行では一致する。**それでも両方を見る。**
+//
+// enabled を書いていたもう 1 つの API (internal/suppression.Engine) は
+// 撤去したが、**その API が残したデータは消えない。** is_active が TRUE の
+// まま enabled=false になっている行が残り得る。
+// 実測 (2026-08-11): enabled=false の 1 件が、is_active だけを見る
+// 問い合わせでは 1 件として返っていた。
+//
+// **書き手が 1 つになったからといって、この条件を外してはいけない。**
+// 外すとそういう行が一斉に抑制を再開する。
+//
+// どちらか一方でも off なら抑制しない。**抑制しない方向に倒す** ——
+// 余計に届いたアラートは消せるが、落ちたアラートは戻らない。
+func (l *PoolSuppressionLoader) ListActiveSuppressions(ctx context.Context) ([]SuppressionRule, error) {
+	if l == nil || l.pool == nil {
+		return nil, nil
+	}
+	rows, err := l.pool.Query(ctx, `
+		SELECT id::text, name,
+		       COALESCE(conditions->>'rule_name', ''),
+		       COALESCE(conditions->>'hostname', ''),
+		       COALESCE(conditions->>'hostname_regex', ''),
+		       COALESCE((conditions->>'severity_max')::int, 0),
+		       COALESCE(conditions->>'mitre_technique', ''),
+		       COALESCE(conditions->>'agent_id', ''),
+		       COALESCE(conditions->>'command_line_contains', ''),
+		       COALESCE(conditions->>'parent_process', ''),
+		       expires_at
+		FROM suppression_rules
+		WHERE is_active = TRUE
+		  AND COALESCE(enabled, TRUE) = TRUE
+		  AND (expires_at IS NULL OR expires_at > NOW())`)
+	if err != nil {
+		return nil, fmt.Errorf("ListActiveSuppressions: %w", err)
+	}
+	defer rows.Close()
+
+	var rules []SuppressionRule
+	for rows.Next() {
+		var r SuppressionRule
+		if err := rows.Scan(
+			&r.ID, &r.Name,
+			&r.RuleName, &r.Hostname, &r.HostnameRegex, &r.SeverityMax,
+			&r.MITRETechnique, &r.AgentID,
+			&r.CommandLine, &r.ParentProcess,
+			&r.ExpiresAt,
+		); err == nil {
+			rules = append(rules, r)
+		}
+	}
+	return rules, rows.Err()
+}

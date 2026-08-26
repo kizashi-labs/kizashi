@@ -1,0 +1,95 @@
+rule_id,title,alerts,max_severity,hosts,techniques,profiles,fp_per_1000_hosts_per_day
+TOTAL,,208,,20,host_days=1.6667,agents=20,124799.11
+(no-rule-id),[Sigma] 疑わしいPowerShell実行,10,8,10,T1059.001,it-admin|office-pc,5999.96
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 13.107.136.9 へ10分内に大量のデータを送信,8,7,8,T1048,office-pc,4799.97
+74eadf72-82ba-4a12-ba82-1f1937305780,[BEHAVIORAL] Linux マルウェア投下キルチェーン,7,8,3,T1105,dev-machine,4199.97
+5debe46d-c6e0-48d2-ad76-bb6c816635a4,[BEHAVIORAL] データ収集→持ち出しキルチェーン,6,7,3,T1560,dev-machine,3599.97
+(no-rule-id),[KILLCHAIN] 多段攻撃の疑い: 複数段のATT&CK戦術を観測,6,8,6,TA0000,dev-machine|it-admin|macbook,3599.97
+(no-rule-id),[Sigma] Exfiltration to Cloud Storage via Native CLI,6,5,6,T1567.002,dev-machine|macbook,3599.97
+(no-rule-id),[Sigma] Remote Access via VNC Server or Client,5,5,3,T1021.005,macbook,2999.98
+(no-rule-id),[BEHAVIORAL] C2ビーコン疑い（定期的な外部通信）,4,7,4,T1071,it-admin|macbook|office-pc,2399.98
+28065246-23d3-43f1-a906-50c72fa74c1f,[BEHAVIORAL] RDPブルートフォース検知,4,8,2,T1110.001,it-admin,2399.98
+de333d01-2c8b-4db7-b557-5386b7f6d1d5,[BEHAVIORAL] RDP接続＋即時偵察キルチェーン（不正リモートアクセスの直後行動）,4,7,2,T1133,it-admin,2399.98
+6440f166-2676-4573-b456-f3a48b79f02b,[BEHAVIORAL] 内部ネットワーク偵察（横展開）,4,7,2,T1018,it-admin,2399.98
+(no-rule-id),[HEURISTIC] 横展開の疑い: 単一ホストが2分内に多数の異なるホストへリモートサービス接続,4,7,4,T1021,file-server|it-admin,2399.98
+(no-rule-id),[Sigma] WMI Remote Command Execution,4,8,2,T1021.006,it-admin,2399.98
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 140.82.114.3 へ10分内に大量のデータを送信,3,7,3,T1048,dev-machine,1799.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'powershell.exe' が30秒内に多数のファイルを破壊的操作,3,8,2,T1486,file-server,1799.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'xcodebuild' が30秒内に多数のファイルを破壊的操作,3,8,3,T1486,macbook,1799.99
+(no-rule-id),[RANSOMWARE-CORRELATION] 暗号化直前の疑い: 2系統の前兆シグナルを併発,3,9,3,T1486,dev-machine,1799.99
+(no-rule-id),[Sigma] Container Administration Command Execution,3,5,3,T1609,dev-machine,1799.99
+(no-rule-id),[Sigma] Container Image Build on Host,3,5,3,T1612,dev-machine,1799.99
+(no-rule-id),[Sigma] Container and Orchestration Discovery,3,5,3,T1613,dev-machine,1799.99
+(no-rule-id),[Sigma] Exfiltration Over Alternative Protocol (DB),3,6,3,T1048,macbook,1799.99
+(no-rule-id),[Sigma] Linux Shell Init File Modification (FIM),3,5,3,T1546.004,dev-machine,1799.99
+(no-rule-id),[Sigma] Private Key File Access (SSH/PPK),3,5,3,T1552.004,dev-machine,1799.99
+(no-rule-id),[Sigma] SSH authorized_keys への不審な書き込み,3,8,3,T1098.004,dev-machine,1799.99
+(no-rule-id),[Sigma] Script Execution from World-Writable Directory (Linux),3,3,3,T1204.002,dev-machine,1799.99
+(no-rule-id),[Sigma] Suspicious chmod of Executable in /tmp,3,3,3,T1222.002,dev-machine,1799.99
+(no-rule-id),[Sigma] macOS Data Exfiltration via curl or scp Upload,3,7,3,T1041,macbook,1799.99
+(no-rule-id),[Sigma] macOS Kernel Extension Load,3,7,3,T1547.006,macbook,1799.99
+(no-rule-id),[Sigma] macOS Launch Agent or Daemon plist File Creation,3,7,3,T1543.001,macbook,1799.99
+(no-rule-id),[Sigma] macOS Security Software Discovery,3,4,3,T1518.001,macbook,1799.99
+(no-rule-id),[Sigma] macOS Shell Startup File Modification,3,6,3,T1546.004,macbook,1799.99
+(no-rule-id),[Sigma] macOS Sudoers or Passwd Modification,3,8,3,T1548.003,macbook,1799.99
+(no-rule-id),[Sigma] macOS System and Owner Discovery,3,3,3,T1082,macbook,1799.99
+(no-rule-id),通常見られないプロセスが不審な場所から実行: MsMpEng.exe,3,4,3,T1059,office-pc,1799.99
+(no-rule-id),[DISCOVERY] 短時間に複数種の探索コマンドを実行（偵察の疑い）,2,5,2,T1007|T1049,it-admin,1199.99
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 3.5.152.180 へ10分内に大量のデータを送信,2,7,2,T1048,macbook,1199.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'find' が30秒内に多数のファイルを破壊的操作,2,8,2,T1486,backup-server,1199.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'go' が30秒内に多数のファイルを破壊的操作,2,8,2,T1486,dev-machine,1199.99
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'restic' が30秒内に多数のファイルを破壊的操作,2,8,2,T1486,backup-server,1199.99
+(no-rule-id),[Sigma] Data Staged in Password-Protected Archive (DB),2,6,2,T1560.001,macbook,1199.99
+(no-rule-id),[Sigma] Domain Account Discovery,2,5,2,T1087.002,it-admin,1199.99
+(no-rule-id),[Sigma] Domain Group Discovery,2,5,2,T1069.002,it-admin,1199.99
+(no-rule-id),[Sigma] Network Share Discovery,2,5,2,T1135,it-admin,1199.99
+(no-rule-id),[Sigma] PsExec Remote Execution,2,8,2,T1021.002,it-admin,1199.99
+(no-rule-id),[Sigma] RDP Lateral Movement via xfreerdp or mstsc,2,5,2,T1021.001,it-admin,1199.99
+(no-rule-id),[Sigma] Registry Modification via reg.exe,2,3,2,T1112,it-admin,1199.99
+(no-rule-id),[Sigma] Suspicious Outbound Connection on Non-Standard Port,2,5,2,T1571,file-server,1199.99
+(no-rule-id),[Sigma] UAC Disabled or Weakened via Registry Value,2,8,2,T1548.002,it-admin,1199.99
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 3.5.152.20 へ10分内に大量のデータを送信,1,7,1,T1048,backup-server,600.00
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 52.219.68.10 へ10分内に大量のデータを送信,1,7,1,T1048,backup-server,600.00
+(no-rule-id),[HEURISTIC] データ持ち出しの疑い: 外部 52.219.68.42 へ10分内に大量のデータを送信,1,7,1,T1048,macbook,600.00
+(no-rule-id),[HEURISTIC] ブルートフォースの疑い: アカウント 'CORP\svc_backup' に5分内で多数のログイン失敗,1,7,1,T1110,it-admin,600.00
+(no-rule-id),[HEURISTIC] ランサムウェアの疑い: プロセス 'robocopy.exe' が30秒内に多数のファイルを破壊的操作,1,8,1,T1486,file-server,600.00
+(no-rule-id),エージェント fpsim-adm-0007 ヘルス警告,1,5,1,,it-admin,600.00
+(no-rule-id),エージェント fpsim-adm-0008 ヘルス警告,1,5,1,,it-admin,600.00
+(no-rule-id),エージェント fpsim-bkp-0000 ヘルス警告,1,5,1,,backup-server,600.00
+(no-rule-id),エージェント fpsim-bkp-0001 ヘルス警告,1,5,1,,backup-server,600.00
+(no-rule-id),エージェント fpsim-dev-0002 ヘルス警告,1,5,1,,dev-machine,600.00
+(no-rule-id),エージェント fpsim-dev-0003 ヘルス警告,1,5,1,,dev-machine,600.00
+(no-rule-id),エージェント fpsim-dev-0004 ヘルス警告,1,5,1,,dev-machine,600.00
+(no-rule-id),エージェント fpsim-fs-0005 ヘルス警告,1,5,1,,file-server,600.00
+(no-rule-id),エージェント fpsim-fs-0006 ヘルス警告,1,5,1,,file-server,600.00
+(no-rule-id),エージェント fpsim-mac-0009 ヘルス警告,1,5,1,,macbook,600.00
+(no-rule-id),エージェント fpsim-mac-0010 ヘルス警告,1,5,1,,macbook,600.00
+(no-rule-id),エージェント fpsim-mac-0011 ヘルス警告,1,5,1,,macbook,600.00
+(no-rule-id),エージェント fpsim-wks-0012 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0013 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0014 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0015 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0016 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0017 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0018 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェント fpsim-wks-0019 ヘルス警告,1,5,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-adm-0007,1,7,1,,it-admin,600.00
+(no-rule-id),エージェントオフライン: fpsim-adm-0008,1,7,1,,it-admin,600.00
+(no-rule-id),エージェントオフライン: fpsim-bkp-0000,1,7,1,,backup-server,600.00
+(no-rule-id),エージェントオフライン: fpsim-bkp-0001,1,7,1,,backup-server,600.00
+(no-rule-id),エージェントオフライン: fpsim-dev-0002,1,7,1,,dev-machine,600.00
+(no-rule-id),エージェントオフライン: fpsim-dev-0003,1,7,1,,dev-machine,600.00
+(no-rule-id),エージェントオフライン: fpsim-dev-0004,1,7,1,,dev-machine,600.00
+(no-rule-id),エージェントオフライン: fpsim-fs-0005,1,7,1,,file-server,600.00
+(no-rule-id),エージェントオフライン: fpsim-fs-0006,1,7,1,,file-server,600.00
+(no-rule-id),エージェントオフライン: fpsim-mac-0009,1,7,1,,macbook,600.00
+(no-rule-id),エージェントオフライン: fpsim-mac-0010,1,7,1,,macbook,600.00
+(no-rule-id),エージェントオフライン: fpsim-mac-0011,1,7,1,,macbook,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0012,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0013,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0014,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0015,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0016,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0017,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0018,1,7,1,,office-pc,600.00
+(no-rule-id),エージェントオフライン: fpsim-wks-0019,1,7,1,,office-pc,600.00

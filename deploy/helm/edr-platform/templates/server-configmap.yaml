@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "edr-platform.fullname" . }}-server-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "edr-platform.server.labels" . | nindent 4 }}
+data:
+  API_PORT: {{ .Values.config.apiPort | quote }}
+  EDR_BASE_URL: {{ .Values.config.edrBaseURL | quote }}
+  NATS_URL: {{ printf "nats://%s-%s:%d" .Release.Name "nats" (.Values.nats.port | int) | quote }}
+  DATABASE_URL: {{ printf "postgres://%s:$(POSTGRES_PASSWORD)@%s-%s:%d/%s" .Values.postgres.username .Release.Name "postgres" (.Values.postgres.port | int) .Values.postgres.database | quote }}
+  CLAUDE_MODEL: {{ .Values.config.claudeModel | quote }}
+  AI_ANALYSIS_ENABLED: {{ .Values.config.aiAnalysisEnabled | quote }}
+  AUTO_RESPONSE_ENABLED: {{ .Values.config.autoResponseEnabled | quote }}
+  AUTO_ISOLATE_MIN_SEVERITY: {{ .Values.config.autoIsolateSeverityThreshold | quote }}
+  AI_MIN_SEVERITY: {{ .Values.config.aiMinSeverity | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}

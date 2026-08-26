@@ -1,0 +1,1032 @@
+import { describe, it, expect } from 'vitest'
+import { readFileSync, readdirSync, statSync, existsSync } from 'fs'
+import { join } from 'path'
+import { blankNoise } from './blank-noise'
+import { ceilingProblem } from './route-scan'
+
+// Endpoints the frontend calls that the server does not serve.
+//
+// Nothing reports this. apiFetch gets a 404, the page's `.catch` turns it into
+// an empty list or a resolved promise, and the screen looks like a feature with
+// no data yet. It is measurable, though: gin registers every route in
+// server/internal/api, so the set of paths the server answers is right there
+// in the source, and so is the set of paths the frontend asks for.
+//
+// Both sets together leave 269 calls with no matching route: 119 reads and
+// 150 writes. (117 と数えていた時期があります。同じ group 変数が別の
+// 場所で別の path に束ねられているのが 19 個あり、union が作る**幻の
+// 経路**に当たった呼び出しが数から消えていました。下の
+// UNROUTED_READ_CEILING に内訳があります。)
+//
+// The write figure was recorded as 131 for one commit. That was an undercount,
+// and the cause is worth keeping: twenty pages had moved their writes to
+// persist() from lib/persist, which wraps apiFetch, and this scan only looked
+// for apiFetch. Nineteen calls vanished from the measurement without a single
+// endpoint being fixed — the number fell and read as progress. CALL_SITES below
+// now lists both spellings. docs/サーバに無い宛先の内訳.md and
+// docs/サーバに無い宛先の内訳-読み取り.md list every one of them, grouped by
+// prefix, with the verb and path mistakes already fixed and the rest left as
+// product decisions.
+//
+// The number that matters is in the reads doc: 72 of the 117 unrouted reads
+// sit under a prefix where the writes have no route either. Those 45 prefixes
+// are not drift between the two sides — the feature exists as a screen and
+// nowhere else. Where a write with no route also discarded its failure, the
+// operator clicked, the UI confirmed, and nothing changed — 33 such calls
+// across 20 pages, since fixed (see silent-writes.test.ts). /admin/geo-blocking
+// had no backend at all: no route, no handler, nothing under internal/, behind
+// a page that let an admin enable country-level blocking and watch the toggle
+// turn on.
+//
+// This file does not decide which side is wrong. A missing route can mean the
+// endpoint was never built, or that the frontend has a typo, or that a feature
+// was removed from one side only. It pins the number so it stops growing while
+// nobody is looking, which is how it got here.
+//
+// One blind spot, found by mutation-testing this file and worth stating rather
+// than pretending away: a param route swallows its siblings. Delete
+// `alerts.GET("/geo-stats")` and /api/v1/alerts/geo-stats still matches
+// `alerts/:id`, so the count does not move. That is what the server does too —
+// the request is routed to GetAlert with id="geo-stats" and answers a bad-UUID
+// error rather than a 404 — so this is the same shape of wrong, not a
+// miscount. It does mean a deleted static route under a `:id` sibling passes
+// unnoticed here.
+
+const API_DIR = join(process.cwd(), '..', 'server', 'internal', 'api')
+const REPO = join(process.cwd(), '..')
+
+/**
+ * ファイルの経路を `/` 区切りに揃えます。
+ *
+ * **この走査は「リポジトリからの相対パス」を文字列の切り貼りで作ります**
+ * （`f.replace(repo + '/', '')`）。Windows の `join`/`readdirSync` は `\`
+ * を返すので、切り落としが空振りして絶対パスがそのまま残り、
+ * `callsByClient` の `startsWith('sdk/python')` が **1本も当たりません。**
+ *
+ * 床（python 25 / typescript 24）は、そのとき初めて「走査から消えた」と
+ * 正しく叫びます —— **叫んでいるのは走査の壊れ方で、SDK の中身では
+ * ありません。** CI は Linux なので緑のまま、手元でだけ落ちます。
+ *
+ * Linux では何も変えません（`\` は現れないので恒等写像です）。
+ */
+export function toPosix(p: string): string {
+  return p.split('\\').join('/')
+}
+const FRONTEND_ROOTS = ['app', 'components', 'lib']
+const API_PREFIX = '/api/v1'
+
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+const METHODS: Method[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+
+function filesUnder(dir: string, exts: string[], out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name)
+    if (statSync(p).isDirectory()) filesUnder(p, exts, out)
+    else if (exts.some(e => name.endsWith(e))) out.push(p)
+  }
+  return out
+}
+
+// ── the server side ─────────────────────────────────────────────────────────
+
+/**
+ * `x := y.Group("/path")` — the variable, its parent, and the segment.
+ *
+ * The parent may be a selector (`s.router.Group("/api/v1")`), so it is
+ * captured with dots and reduced to its last identifier. Requiring a bare
+ * identifier silently failed on exactly that line, which left `api`
+ * unresolved and every route recorded without its /api/v1 prefix.
+ */
+const GROUP = /(\w+)\s*:?=\s*([\w.]+)\.Group\(\s*"([^"]*)"/g
+/** `x.GET("/path", handler)` — including Any, which answers every method. */
+const REGISTER = /(\w+)\.(GET|POST|PUT|PATCH|DELETE|Any)\(\s*"([^"]*)"/g
+
+/**
+ * Every route the server registers, as "METHOD /path".
+ *
+ * Group variables are resolved transitively: a route registered on `tiAdmin`
+ * where `tiAdmin := protected.Group("/admin/threat-intel")` and
+ * `protected := api.Group("/")` is /admin/threat-intel/… . A variable can be
+ * assigned more than once in the tree (`agents := protected.Group("/agents")`
+ * appears five times), so every base it could have is kept.
+ */
+export function serverRoutes(sources: string[]): Set<string> {
+  type Decl = { parent: string; path: string; at: number }
+  // すべての file をまたいだ表（宣言が別 file にある変数のため）。
+  const bases = new Map<string, Decl[]>()
+  // file ごとの表。**同じ名前が別の場所で別の path に束ねられるため**、
+  // どの宣言かを登録の位置で選びます（下の resolve を参照）。
+  const perSource: Array<Map<string, Decl[]>> = sources.map(() => new Map())
+
+  sources.forEach((src, i) => {
+    const clean = blankNoiseGo(src)
+    GROUP.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = GROUP.exec(clean)) !== null) {
+      const [, name, parentExpr, path] = m
+      const parent = parentExpr.split('.').pop()!
+      if (name === parent) continue // `x = x.Group(...)` would not terminate
+      const decl: Decl = { parent, path, at: m.index }
+      if (!bases.has(name)) bases.set(name, [])
+      bases.get(name)!.push(decl)
+      if (!perSource[i].has(name)) perSource[i].set(name, [])
+      perSource[i].get(name)!.push(decl)
+    }
+  })
+
+  /**
+   * The prefixes a group variable can stand for at a given point in a file.
+   *
+   * **同じ名前が二度束ねられていました。** router.go の `ep` は 1711 行で
+   * `/endpoints`、2767 行で `/admin/edr-policies` です。両方を union すると、
+   * `ep.GET("/:id")`（後者）から **`GET /api/v1/endpoints/:id` という
+   * 存在しない経路**が生まれます。そして `:id` は1 segment に何でも当たる
+   * ので、`GET /api/v1/endpoints/criticality` が「サーバにある」と判定され、
+   * **無い経路が数から消えていました。**
+   *
+   * いまは登録より上にある、いちばん近い宣言を選びます。同じ file に
+   * 宣言が無ければ（引数で渡された `protected` など）、今まで通り
+   * file をまたいだ表を使います。
+   */
+  const resolve = (name: string, at: number, i: number, depth = 0): string[] => {
+    if (depth > 8) return ['']
+    const local = (perSource[i].get(name) ?? []).filter(d => d.at < at)
+    if (local.length) {
+      const d = local[local.length - 1]
+      return resolve(d.parent, d.at, i, depth + 1).map(pp => pp + d.path)
+    }
+    const global = bases.get(name)
+    if (!global) return ['']
+    const out: string[] = []
+    for (const d of global) {
+      for (const pp of resolveGlobal(d.parent, depth + 1)) out.push(pp + d.path)
+    }
+    return out.length ? out : ['']
+  }
+
+  const resolveGlobal = (name: string, depth = 0): string[] => {
+    if (depth > 8 || !bases.has(name)) return ['']
+    const out: string[] = []
+    for (const d of bases.get(name)!) {
+      for (const pp of resolveGlobal(d.parent, depth + 1)) out.push(pp + d.path)
+    }
+    return out.length ? out : ['']
+  }
+
+  const routes = new Set<string>()
+  const add = (method: string, path: string) => {
+    const p = normalisePath(path)
+    const methods = method === 'Any' ? METHODS : [method]
+    for (const meth of methods) {
+      routes.add(`${meth} ${p}`)
+      // Some routes are registered straight on the router with the version
+      // prefix spelled out (`s.router.GET("/api/v1/health/detailed", …)`).
+      if (p.startsWith(API_PREFIX)) routes.add(`${meth} ${p.slice(API_PREFIX.length) || '/'}`)
+    }
+  }
+  sources.forEach((src, i) => {
+    const clean = blankNoiseGo(src)
+    REGISTER.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = REGISTER.exec(clean)) !== null) {
+      const [, name, method, path] = m
+      for (const base of resolve(name, m.index, i)) add(method, base + path)
+    }
+  })
+  return routes
+}
+
+/**
+ * Go's comments and string literals blanked, offsets preserved.
+ *
+ * The route regexes read the path out of a string literal, so this cannot use
+ * blankNoise as-is — it keeps double-quoted contents and only blanks comments
+ * and raw backtick strings, which is where the SQL and the doc comments live.
+ */
+function blankNoiseGo(src: string): string {
+  const keep = (s: string) => s.replace(/[^\n]/g, ' ')
+  const out: string[] = []
+  let i = 0
+  while (i < src.length) {
+    if (src[i] === '/' && src[i + 1] === '/') {
+      let j = src.indexOf('\n', i)
+      if (j < 0) j = src.length
+      out.push(keep(src.slice(i, j)))
+      i = j
+      continue
+    }
+    if (src[i] === '/' && src[i + 1] === '*') {
+      let j = src.indexOf('*/', i + 2)
+      j = j < 0 ? src.length : j + 2
+      out.push(keep(src.slice(i, j)))
+      i = j
+      continue
+    }
+    if (src[i] === '`') {
+      let j = src.indexOf('`', i + 1)
+      j = j < 0 ? src.length : j + 1
+      out.push(keep(src.slice(i, j)))
+      i = j
+      continue
+    }
+    out.push(src[i])
+    i += 1
+  }
+  return out.join('')
+}
+
+function normalisePath(p: string): string {
+  const collapsed = p.replace(/\/+/g, '/')
+  return collapsed.length > 1 ? collapsed.replace(/\/$/, '') : collapsed
+}
+
+/** Does a gin route pattern answer this concrete path? */
+export function matchesRoute(pattern: string, path: string): boolean {
+  const a = pattern.split('/').filter(Boolean)
+  const b = path.split('/').filter(Boolean)
+  const star = a.findIndex(s => s.startsWith('*'))
+  if (star >= 0) {
+    return b.length >= star && a.slice(0, star).every((s, k) => s === b[k] || s.startsWith(':'))
+  }
+  if (a.length !== b.length) return false
+  return a.every((s, k) => s === b[k] || s.startsWith(':'))
+}
+
+// ── the frontend side ───────────────────────────────────────────────────────
+
+/**
+ * Calls that name an endpoint.
+ *
+ * `persist(what, path, init)` from lib/persist wraps apiFetch, so a page
+ * converted to it disappears from this scan unless it is listed here. That
+ * happened: the unrouted-write count dropped from 131 to 124 when twenty pages
+ * adopted the helper, and not one endpoint had been fixed. A measurement that
+ * falls when code moves is worse than no measurement — it reads as progress.
+ */
+// 三つの綴り。二つでは足りませんでした。
+//
+// persist を足したときは、19件が「宛先が消えた」のではなく「見えていな
+// かった」ものとして出てきました。素の fetch も同じで、40件がどの判定
+// にも映っていませんでした。数え漏らした分は、直ったのと同じ形で数字に
+// 現れます。tests/lib/raw-fetch.test.ts が素の fetch そのものを見ています。
+//
+// **4つ目の綴りは、型引数でした (2026-08-12)。** `<[^;{]*?>` は `{` を
+// 除いていたので、**`apiFetch<{ rules: Rule[] }>(…)` の形が1件も
+// 見えていませんでした** —— `apiFetch<Agent[]>` は見えるのに、
+// object の型を直接書いた瞬間に消えます。実測 **154 件 / 90 file**、
+// 見えていた 1310 件に対して約1割です。
+//
+// `;` を除くのも駄目でした: `<{ token?: string; enrollment_token?: string }>`
+// のように、object の型は中に `;` を持ちます。括弧だけを境にします ——
+// 非貪欲なので、次の `(` を越えることはありません。
+const CALL_SITES = [
+  { re: /\bapiFetch(?:List)?\s*(?:<[^()]*?>)?\s*\(/g, pathArg: 0 },
+  { re: /\bpersist\s*\(/g, pathArg: 1 },
+  { re: /(?<![.\w])fetch\s*\(/g, pathArg: 0 },
+]
+
+export interface Call {
+  method: Method
+  /** Representative path, for reporting. */
+  path: string
+  /** Every concrete path the literal can produce. */
+  paths: string[]
+  line: number
+}
+
+/**
+ * Every /api/v1 endpoint a file asks for.
+ *
+ * The method is read from the call's own argument list, bounded by paren
+ * matching. An early version scanned a fixed window past the path and picked
+ * up the *next* call's `method:`, which reported 31 writes to /api/v1/agents —
+ * an endpoint whose GET has existed all along.
+ */
+export function frontendCalls(src: string): Call[] {
+  // The call sites are found in the blanked copy, so a commented-out example
+  // is not a call. The path literal has to be read from the original — that is
+  // the one thing blankNoise erases. Offsets are identical between the two.
+  const clean = blankNoise(src)
+  const calls: Call[] = []
+  for (const { re, pathArg } of CALL_SITES) {
+    re.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = re.exec(clean)) !== null) {
+      const open = m.index + m[0].length - 1
+      const q = literalStart(src, clean, open, pathArg)
+      if (q < 0) continue
+      const quote = src[q]
+
+      const litEnd = findLiteralEnd(src, q + 1, quote)
+      const literal = src.slice(q + 1, litEnd)
+      if (!literal.startsWith('/')) continue
+
+      const argsEnd = closingParen(clean, open)
+      const args = src.slice(open, argsEnd)
+      const meth = /method:\s*['"](GET|POST|PUT|PATCH|DELETE)['"]/.exec(args)
+      const paths = candidatePaths(literal)
+      calls.push({
+        method: (meth?.[1] as Method) ?? 'GET',
+        path: paths[0],
+        paths,
+        line: src.slice(0, m.index).split('\n').length,
+      })
+    }
+  }
+  return calls
+}
+
+/**
+ * Index in `src` of the opening quote of argument number `pathArg`.
+ *
+ * Commas are counted in the blanked copy so a comma inside a string or a
+ * comment does not advance the argument, and depth is tracked so a comma
+ * inside a nested call or object literal does not either. Returns -1 when that
+ * argument is not a string literal — `persist(label, url, …)` where the url is
+ * a variable cannot be resolved statically and is skipped rather than guessed.
+ */
+export function literalStart(src: string, clean: string, open: number, pathArg: number): number {
+  let depth = 0
+  let arg = 0
+  for (let i = open; i < clean.length && i < open + 8000; i++) {
+    const c = clean[i]
+    if (c === '(' || c === '[' || c === '{') depth++
+    else if (c === ')' || c === ']' || c === '}') {
+      depth--
+      if (depth === 0) return -1
+    } else if (c === ',' && depth === 1) {
+      arg++
+      if (arg > pathArg) return -1
+      continue
+    }
+    if (arg === pathArg && depth === 1) {
+      const q = src[i]
+      if (q === "'" || q === '"' || q === '`') return i
+    }
+  }
+  return -1
+}
+
+function findLiteralEnd(src: string, from: number, quote: string): number {
+  // **入れ子のテンプレートで切れていました。**
+  //
+  //   `/api/v1/admin/access-review/items${c ? `?campaign_id=${c.id}` : \'\'}`
+  //                                            ^ ここで終わりだと読む
+  //
+  // 内側の ` で止まるので、取り出した literal は補間の途中で切れ、
+  // **`…/items:p` という存在しない経路**になっていました。補間の中は
+  // 深さを数えて飛ばします。
+  let interp = 0
+  for (let i = from; i < src.length; i++) {
+    if (src[i] === '\\') { i++; continue }
+    if (quote === '`' && src[i] === '$' && src[i + 1] === '{') { interp++; i++; continue }
+    if (interp > 0) {
+      if (src[i] === '{') interp++
+      else if (src[i] === '}') interp--
+      continue
+    }
+    if (src[i] === quote) return i
+  }
+  return src.length
+}
+
+function closingParen(src: string, open: number): number {
+  let depth = 0
+  for (let i = open; i < src.length && i < open + 8000; i++) {
+    if (src[i] === '(') depth++
+    else if (src[i] === ')' && --depth === 0) return i + 1
+  }
+  return Math.min(src.length, open + 800)
+}
+
+/**
+ * The concrete paths a template literal can produce.
+ *
+ * `${id}` becomes :p, but an interpolation made only of string literals is
+ * expanded instead: `/auth/mfa/email/${enable ? 'enable' : 'disable'}` is two
+ * real paths, both of which the server registers. Collapsing it to
+ * /auth/mfa/email/:p reported a working call as unrouted — the same mistake
+ * as reading a segment that is not a parameter as though it were one.
+ *
+ * Brace-matched, so a ternary or an object inside does not end it early.
+ */
+export function candidatePaths(lit: string): string[] {
+  lit = withoutTrailingQueryBuilder(lit)
+  let variants = ['']
+  let i = 0
+  while (i < lit.length) {
+    if (lit[i] === '$' && lit[i + 1] === '{') {
+      let depth = 0
+      let j = i + 1
+      for (; j < lit.length; j++) {
+        if (lit[j] === '{') depth++
+        else if (lit[j] === '}' && --depth === 0) break
+      }
+      const expr = lit.slice(i + 2, j)
+      const pieces = literalAlternatives(expr)
+      variants = variants.flatMap(v => pieces.map(p => v + p))
+      i = j + 1
+      continue
+    }
+    const ch = lit[i]
+    variants = variants.map(v => v + ch)
+    i += 1
+  }
+  const seen = new Set<string>()
+  for (const v of variants) seen.add(normalisePath(v.split('?')[0].split('#')[0]))
+  return [...seen]
+}
+
+/**
+ * Drops a trailing interpolation that is building a query string.
+ *
+ *   `/api/v1/admin/access-review/items${c ? `?campaign_id=${c.id}` : ''}`
+ *   `/api/v1/admin/api-security/events${params}`
+ *   `/api/v1/device-events${buildQuery({ … })}`
+ *
+ * All three are the bare path at runtime, but read literally the tail became
+ * a segment (`items:p`) and the call was reported as unrouted. Five calls sat
+ * in that state, every one of them working.
+ *
+ * The tell is that the interpolation is glued to the end with no `/` in front
+ * of it: a path segment is always preceded by a slash. A suffix inside the
+ * last segment would be caught by this too — that is the accepted cost, and it
+ * is much smaller than a systematic false positive.
+ */
+export function withoutTrailingQueryBuilder(lit: string): string {
+  // **いちばん外側の補間を探します。** `lastIndexOf('${')` だと、
+  // クエリを組み立てる入れ子の内側に当たります:
+  //
+  //   `…/items${c ? `?campaign_id=${c.id}` : ''}`
+  //                                ^^^^^^ ここが「最後の ${」
+  //
+  // 外側が末尾まで届いているのに、内側で見ているので届いていないと
+  // 判断し、補間はそのまま展開されて `…/items:p` という**存在しない
+  // 経路**になります。実測 2 件（access-review・MDM プロファイル）が、
+  // **動いているのに「宛先が無い」と報告されていました。**
+  let at = -1
+  for (let i = 0; i < lit.length; i++) {
+    if (lit[i] !== '$' || lit[i + 1] !== '{') continue
+    at = i
+    // この補間の終わりまで飛ばします（入れ子は数えません）。
+    let depth = 0
+    for (let j = i + 1; j < lit.length; j++) {
+      if (lit[j] === '{') depth++
+      else if (lit[j] === '}' && --depth === 0) {
+        i = j
+        break
+      }
+    }
+  }
+  if (at < 0) return lit
+  // The interpolation must run to the end of the literal.
+  let depth = 0
+  let j = at + 1
+  for (; j < lit.length; j++) {
+    if (lit[j] === '{') depth++
+    else if (lit[j] === '}' && --depth === 0) break
+  }
+  if (j !== lit.length - 1) return lit
+  if (at === 0 || lit[at - 1] === '/') return lit
+  return lit.slice(0, at)
+}
+
+/**
+ * The values an interpolation can take, or [':p'] when it is not a choice
+ * between string literals.
+ *
+ * Only expressions built purely of quoted strings, a ternary and `||`/`??`
+ * qualify; anything containing an identifier that is used as a value could be
+ * any string at runtime and stays a parameter.
+ */
+export function literalAlternatives(expr: string): string[] {
+  const strings = [...expr.matchAll(/'([^']*)'|"([^"]*)"|`([^`$]*)`/g)].map(
+    m => m[1] ?? m[2] ?? m[3]
+  )
+  if (strings.length === 0) return [':p']
+  // Remove the literals and the operators that can only select between them.
+  const rest = expr
+    .replace(/'[^']*'|"[^"]*"|`[^`$]*`/g, '')
+    .replace(/[?:|&()\s]|\?\?/g, '')
+  // What is left must be an identifier or two doing the selecting, not a value.
+  if (/[.[\]+`$]/.test(rest)) return [':p']
+  return strings
+}
+
+/** One representative path, for reporting. */
+export function normaliseLiteral(lit: string): string {
+  return candidatePaths(lit)[0]
+}
+
+// ── the rule ────────────────────────────────────────────────────────────────
+
+/**
+ * True when *no* path this call can produce has a route.
+ *
+ * A call whose interpolation selects between literals is only a problem if
+ * every branch is unrouted; one working branch means the endpoint exists and
+ * the parameter is doing its job.
+ */
+export function isUnrouted(call: Call, routes: Set<string>): boolean {
+  return call.paths.every(p => !hasRoute(call.method, p, routes))
+}
+
+function hasRoute(method: Method, path: string, routes: Set<string>): boolean {
+  const bare = path.startsWith(API_PREFIX) ? path.slice(API_PREFIX.length) || '/' : path
+  if (routes.has(`${method} ${bare}`)) return true
+  for (const entry of routes) {
+    const sp = entry.indexOf(' ')
+    if (entry.slice(0, sp) !== method) continue
+    if (matchesRoute(entry.slice(sp + 1), bare)) return true
+  }
+  return false
+}
+
+// 上限との突き合わせは route-scan.ts のものを使います。
+//
+// **ここには同じ関数の写しがありました。** 文言を直しても、この写しを
+// 読んでいる検査だけが古い文言のまま残ります（実際、定数名を入れる直しを
+// 入れた直後に、この写しのせいで引数の数が合わなくなって見つかりました）。
+// 道具は 1 つにして、この file には**この木の実測（上限）とそれを読む
+// 検査だけ**を置きます。
+
+/**
+ * Calls whose endpoint the server does not register. Only go down.
+ *
+ * Writes are counted separately because they are the ones with a consequence
+ * beyond an empty screen: the operator believes something changed.
+ */
+// 実測 (2026-08-12): 読み取り 117 → **119**。
+//
+// **117 は少なく数えていました。** 同じ group 変数が別の場所で別の path に
+// 束ねられているのが 19 個あり（`ep` は `/endpoints` と
+// `/admin/edr-policies`、`cr` に至っては4つ）、union すると**存在しない
+// 経路**が生まれます。`:id` は1 segment に何でも当たるので、
+// `GET /api/v1/endpoints/criticality` は `GET /api/v1/endpoints/:id`
+// （`ep.GET("/:id")` × `/endpoints`、gin には無い組み合わせ）に当たって
+// 「サーバにある」と判定されていました。
+//
+// 内訳: 幻の経路に隠れていた 3 件が出て 120、`GET /endpoints/criticality`
+// に本物の経路を足して 119。**上がったのは、増えたからではなく
+// 見えるようになったからです。**
+//
+// **同じことがもう一度あります (2026-08-12): 119 → 126、書き込み
+// 150 → 153。** 呼び出しを見つける正規表現が `apiFetch<{ … }>(…)` の
+// 形を1件も拾っていませんでした（型引数から `{` を除いていたため）。
+// **154 件 / 90 file** が判定の外にあり、そのうち 10 件は宛先が
+// ありませんでした。
+//
+// **そしてもう一度 (2026-08-12): 126 → 137 → 134、書き込み 153 → 159。**
+// 判定が `/api/v1` で始まる宛先しか見ていませんでした。サーバは
+// `/taxii2` も出しているので、**版のついていない宛先は、間違っていても
+// 数に出ません**でした。絶対パスなら全部見るようにして 17 件出ました
+// —— TAXII の4件は当たっている（見えていなかっただけ）、残る 13 件は
+// 本当に宛先がありません。
+//
+// 出たうち ITDR の読み取り3本は**宛先の書き間違い**でした
+// （`/api/itdr/incidents` に対し、サーバは
+// `/api/v1/admin/itdr/incidents`）。直したので読み取りは 134 です。
+//
+// **数が4度続けて上がりました。4度とも、走査が見ていなかった分です。**
+//
+// **5度目は下がりました (2026-08-12): 134 → 130。** literal の終わりを
+// 探すのに、入れ子のテンプレートを数えていませんでした ——
+// `…/items${c ? \`?campaign_id=${c.id}\` : ''}` は内側の ` で切れ、
+// **補間の途中で終わる literal**になります。4件が、動いているのに
+// 「宛先が無い」と報告されていました。**上がるのと同じくらい、
+// 下がるのも走査の間違いでした。**
+//
+// **6度目も下がりました (main 取り込み): 130 → 129 / 159 → 158。**
+// 今回は走査の間違いではなく、宛先が実在するようになった分です ——
+// incidents 画面が /api/v1/admin/correlation/rules と
+// PUT /api/v1/admin/incidents/:id/status（どちらも router に無い）を
+// 呼んでいたのを、実在する /api/v1/correlation-engine と
+// PATCH /api/v1/incidents/:id/status に付け替えました (#673)。
+//
+// **7度目も下がりました: 158 → 157（書き込みのみ）。** 抑制ルールの編集
+// `PUT /api/v1/suppressions/:id` にサーバ側の実装が無く、画面は 404 を
+// 握りつぶして編集フォームを閉じていました。ルート・ハンドラ・store を
+// 実装して解消した分です（読み取りは 129 のまま）。
+const UNROUTED_READ_CEILING = 31
+const UNROUTED_WRITE_CEILING = 17
+
+describe('サーバに無い宛先', () => {
+  const goFiles = existsSync(API_DIR) ? filesUnder(API_DIR, ['.go']) : []
+  const goSources = goFiles
+    .filter(f => !f.endsWith('_test.go'))
+    .map(f => readFileSync(f, 'utf8'))
+  const routes = serverRoutes(goSources)
+
+  const feFiles = FRONTEND_ROOTS.flatMap(r => filesUnder(join(process.cwd(), r), ['.ts', '.tsx']))
+  // パスは `/` 区切りに揃えます。**Windows の `join` / `readdirSync` は
+  // `\` を返す**ので、素の相対化が空振りして絶対パスが残ります。許可リストは
+  // 相対パスを鍵にしているので 1 件も当たらなくなり、**直っている木で全件が
+  // 違反として並びます** —— 叫んでいるのは走査の壊れ方で、木の中身では
+  // ありません（route-scan.ts の toPosix に同じ注記があります）。
+  const rel = (p: string) =>
+    toPosix(p).replace(toPosix(process.cwd()) + '/', '')
+
+  const unrouted = feFiles.flatMap(f =>
+    frontendCalls(readFileSync(f, 'utf8'))
+      .filter(c => isUnrouted(c, routes))
+      .map(c => ({ ...c, file: rel(f) }))
+  )
+
+  // ルーティング表を読めていなければ「全部無い」か「全部ある」になり、
+  // どちらでも上限判定は通ってしまいます。両側の走査をまず確かめます。
+  it('サーバのルーティング表を読めている', () => {
+    expect(goFiles.length, 'server/internal/api が見つかりません').toBeGreaterThan(10)
+    expect(routes.size, '登録ルートが少なすぎます').toBeGreaterThan(250)
+    // 実在することが確実な数本。走査が壊れたらここが落ちます。
+    for (const known of ['GET /agents', 'GET /alerts', 'GET /agents/:id', 'POST /auth/login']) {
+      expect(routes.has(known), `${known} を見つけられていません`).toBe(true)
+    }
+  })
+
+  it('フロントエンドの呼び出しを読めている', () => {
+    const all = feFiles.flatMap(f => frontendCalls(readFileSync(f, 'utf8')))
+    expect(all.length, 'apiFetch の呼び出しが見つかりません').toBeGreaterThan(50)
+    expect(all.filter(c => c.method !== 'GET').length).toBeGreaterThan(40)
+  })
+
+  it('ルートの無い読み取りが増えていない', () => {
+    const n = unrouted.filter(c => c.method === 'GET').length
+    expect(
+      ceilingProblem('ルートの無い読み取り', n, UNROUTED_READ_CEILING, 'UNROUTED_READ_CEILING')
+    ).toBeNull()
+  })
+
+  it('ルートの無い書き込みが増えていない', () => {
+    const writes = unrouted.filter(c => c.method !== 'GET')
+    expect(
+      ceilingProblem('ルートの無い書き込み', writes.length, UNROUTED_WRITE_CEILING,
+        'UNROUTED_WRITE_CEILING'),
+      '押した人には成功に見えます:\n  ' +
+        writes.slice(0, 20).map(c => `${c.method} ${c.path}  ${c.file}:${c.line}`).join('\n  ')
+    ).toBeNull()
+  })
+
+  // ── 判定そのもの ─────────────────────────────────────────────────────────
+  // 実測が上限と一致している通常状態では、上の4本はどれも肯定側の分岐に
+  // 入りません。ここから下は判定を直接動かします。
+
+  it.each([
+    { pattern: '/agents', path: '/agents', want: true },
+    { pattern: '/agents/:id', path: '/agents/abc', want: true },
+    { pattern: '/agents/:id', path: '/agents', want: false },
+    { pattern: '/agents/:id', path: '/agents/abc/tags', want: false },
+    { pattern: '/agents/:id/tags/:tag', path: '/agents/a/tags/b', want: true },
+    { pattern: '/files/*path', path: '/files/a/b/c', want: true },
+    { pattern: '/files/*path', path: '/other/a', want: false },
+    { pattern: '/agents', path: '/alerts', want: false },
+  ])('経路照合: $pattern vs $path', ({ pattern, path, want }) => {
+    expect(matchesRoute(pattern, path)).toBe(want)
+  })
+
+  it('グループを辿って完全な経路を組み立てられる', () => {
+    const r = serverRoutes([
+      `func x() {
+         api := s.router.Group("/api/v1")
+         protected := api.Group("/")
+         ti := protected.Group("/admin/threat-intel")
+         ti.POST("/lookup", h.LookupIOC)
+         protected.GET("/agents/:id", h.GetAgent)
+         s.router.GET("/api/v1/health/detailed", h.Health)
+       }`,
+    ])
+    expect(r.has('POST /api/v1/admin/threat-intel/lookup')).toBe(true)
+    expect(r.has('GET /api/v1/agents/:id')).toBe(true)
+    // 版のプレフィックスを直接書いたものは、両方の綴りで登録されます。
+    expect(r.has('GET /health/detailed')).toBe(true)
+    expect(r.has('GET /api/v1/health/detailed')).toBe(true)
+  })
+
+  it('コメントの中のルートは登録として数えない', () => {
+    const r = serverRoutes([
+      `func x() {
+         // protected.GET("/ghost", h.Ghost)
+         /* protected.POST("/phantom", h.Phantom) */
+         protected := api.Group("")
+         protected.GET("/real", h.Real)
+       }`,
+    ])
+    expect(r.has('GET /ghost')).toBe(false)
+    expect(r.has('POST /phantom')).toBe(false)
+    expect(r.has('GET /real')).toBe(true)
+  })
+
+  // **同じ名前が別の場所で別の path に束ねられている**とき、登録より上に
+  // ある宣言を使うこと。union すると幻の経路が生まれ、**その幻に当たった
+  // 呼び出しは「サーバにある」として数から消えます。**
+  it('同じ名前の group は、登録の直前の宣言で解決する', () => {
+    const r = serverRoutes([
+      `func x() {
+         api := s.router.Group("/api/v1")
+         protected := api.Group("/")
+         ep := protected.Group("/endpoints")
+         ep.GET("/criticality", h.List)
+       }
+       func y(protected *gin.RouterGroup) {
+         ep := protected.Group("/admin/edr-policies")
+         ep.GET("/:id", h.Get)
+       }`,
+    ])
+    expect(r.has('GET /api/v1/endpoints/criticality')).toBe(true)
+    expect(r.has('GET /api/v1/admin/edr-policies/:id')).toBe(true)
+    // **幻**: `ep.GET("/:id")` は `/endpoints` の側では登録されていません。
+    expect(r.has('GET /api/v1/endpoints/:id')).toBe(false)
+    expect(r.has('GET /api/v1/admin/edr-policies/criticality')).toBe(false)
+  })
+
+  it('Any は全メソッドを答える', () => {
+    const r = serverRoutes([`func x() { g := api.Group("/g"); g.Any("/p", h.P) }`])
+    for (const m of METHODS) expect(r.has(`${m} /g/p`)).toBe(true)
+  })
+
+  it.each([
+    // 末尾の補間はクエリ文字列の組み立てで、経路の一部ではありません。
+    {
+      src: "apiFetch(`/api/v1/admin/api-security/events${params}`)",
+      method: 'GET',
+      path: '/api/v1/admin/api-security/events',
+    },
+    {
+      src: 'apiFetch(`/api/v1/device-events${buildQuery({ a: 1 })}`)',
+      method: 'GET',
+      path: '/api/v1/device-events',
+    },
+    // **入れ子のクエリ組み立て。** 「最後の `${`」で探すと、内側の
+    // `${c.id}` に当たって外側が末尾まで届いていないと判断し、
+    // **`…/items:p` という存在しない経路**として報告されていました。
+    // 実測2件（access-review・MDM プロファイル）——
+    // 宛先が無いのは同じでも、**報告される経路が実在しないと、探しに
+    // 行った人が何も見つけられません。**
+    {
+      src: "apiFetch(`/api/v1/admin/access-review/items${c ? `?campaign_id=${c.id}` : ''}`)",
+      method: 'GET',
+      path: '/api/v1/admin/access-review/items',
+    },
+    {
+      src: "apiFetch(`/api/v1/admin/mdm/profiles${f !== 'all' ? `?platform=${f}` : ''}`)",
+      method: 'GET',
+      path: '/api/v1/admin/mdm/profiles',
+    },
+    // 直前が / なら経路の一部なので、そのまま :p にします。
+    {
+      src: 'apiFetch(`/api/v1/agents/${id}`)',
+      method: 'GET',
+      path: '/api/v1/agents/:p',
+    },
+    { src: `apiFetch('/api/v1/agents')`, method: 'GET', path: '/api/v1/agents' },
+    {
+      src: `apiFetch('/api/v1/agents/x', { method: 'DELETE' })`,
+      method: 'DELETE',
+      path: '/api/v1/agents/x',
+    },
+    {
+      src: 'apiFetch(`/api/v1/agents/${id}/isolate`, { method: `POST`.length ? { method: "POST" } : {} })',
+      method: 'POST',
+      path: '/api/v1/agents/:p/isolate',
+    },
+    {
+      src: `apiFetch('/api/v1/agents?per_page=500')`,
+      method: 'GET',
+      path: '/api/v1/agents',
+    },
+    {
+      src: 'apiFetchList<Agent>(`/api/v1/groups/${g.id}/agents`)',
+      method: 'GET',
+      path: '/api/v1/groups/:p/agents',
+    },
+  ])('呼び出しの読み取り: $src', ({ src, method, path }) => {
+    const [c] = frontendCalls(src)
+    expect(c.method).toBe(method)
+    expect(c.path).toBe(path)
+  })
+
+  // persist() は書き込み専用で、init に method が無いと読み取りとして
+  // 数えられ、違う上限に入ります。呼び出し側の規約として固定します。
+  it('persist の呼び出しは必ず method を渡している', () => {
+    const offenders: string[] = []
+    for (const f of feFiles) {
+      const src = readFileSync(f, 'utf8')
+      const clean = blankNoise(src)
+      for (const m of [...clean.matchAll(/\bpersist\s*\(/g)]) {
+        const open = m.index + m[0].length - 1
+        const args = src.slice(open, closingParen(clean, open))
+        if (!/method:\s*['"](GET|POST|PUT|PATCH|DELETE)['"]/.test(args)) {
+          offenders.push(`${rel(f)}:${src.slice(0, m.index).split('\n').length}`)
+        }
+      }
+    }
+    expect(offenders, 'method の無い persist は読み取りとして数えられます').toEqual([])
+  })
+
+  // 引数の位置決め。入れ子の中のカンマで引数が進むと、別の文字列を経路と
+  // して読みます。通常のコードには入れ子のカンマが無く、消しても何も
+  // 変わらないので、直接動かします。
+  it.each([
+    { src: `f('/a', {})`, arg: 0, want: '/a' },
+    { src: `f('x', '/b', {})`, arg: 1, want: '/b' },
+    { src: `f(t('a', 'b'), '/c', {})`, arg: 1, want: '/c' },
+    { src: `f({ a: 1, b: 2 }, '/d')`, arg: 1, want: '/d' },
+    { src: `f('/a')`, arg: 1, want: null },
+    { src: `f(url, {})`, arg: 0, want: null },
+  ])('引数の位置決め: $src → $arg', ({ src, arg, want }) => {
+    const clean = blankNoise(src)
+    const at = literalStart(src, clean, src.indexOf('('), arg)
+    if (want === null) {
+      expect(at).toBe(-1)
+    } else {
+      const quote = src[at]
+      expect(src.slice(at + 1, src.indexOf(quote, at + 1))).toBe(want)
+    }
+  })
+
+  it('直後の呼び出しのメソッドを取り違えない', () => {
+    const calls = frontendCalls(
+      `const a = apiFetch('/api/v1/read')\n` +
+        `const b = apiFetch('/api/v1/write', { method: 'POST' })`
+    )
+    expect(calls.map(c => c.method)).toEqual(['GET', 'POST'])
+  })
+
+  it('コメントの中の呼び出しは数えない', () => {
+    expect(frontendCalls(`// apiFetch('/api/v1/ghost')\nconst a = 1`)).toHaveLength(0)
+  })
+
+  it.each([
+    { name: '一致するルートがある', call: 'GET /agents', want: false },
+    { name: 'メソッドだけ違う', call: 'POST /agents', want: true },
+    { name: '経路が無い', call: 'GET /nowhere', want: true },
+  ])('未登録の判定: $name', ({ call, want }) => {
+    const routes = new Set(['GET /agents', 'GET /agents/:id'])
+    const [method, path] = call.split(' ')
+    expect(
+      isUnrouted(
+        { method: method as Method, path: API_PREFIX + path, paths: [API_PREFIX + path], line: 1 },
+        routes
+      )
+    ).toBe(want)
+  })
+
+  // 下げる指摘は **定数の名前を含みます**。
+  // `scripts/recalibrate_ratchets.py` が探すのは「<名前> を <数> に
+  // 下げてください」という形で、名前が落ちると道具は下げられなくなり、
+  // 公開版の生成のたびに人が測り直すことになります。**文言そのものが
+  // 契約なので、正規表現で留めます。**
+  it.each([
+    { actual: 10, ceiling: 10, expected: null },
+    { actual: 11, ceiling: 10, expected: /増えています/ },
+    { actual: 9, ceiling: 10, expected: /X_CEILING を 9 に下げてください/ },
+    { actual: 0, ceiling: 10, expected: /X_CEILING を 0 に下げてください/ },
+  ])('上限判定: $actual / $ceiling', ({ actual, ceiling, expected }) => {
+    const got = ceilingProblem('x', actual, ceiling, 'X_CEILING')
+    if (expected === null) expect(got).toBeNull()
+    else expect(got).toMatch(expected)
+  })
+})
+
+// ── SDK と mobile ───────────────────────────────────────────────────────────
+
+/**
+ * The endpoints the shipped clients call.
+ *
+ * **照合していたのは `frontend/` だけでした。** SDK も mobile も同じ
+ * サーバを叩きますが、どちらも一度も突き合わせていません。実測
+ * (2026-08-12): **59 本のうち 16 本に経路がありませんでした** ——
+ * Python と TypeScript が同じ 8 つを間違えています（両者は写しなので、
+ * 片方の間違いはもう片方にもあります）。
+ *
+ *	PATCH /alerts/:id 他2つ          サーバは PUT です
+ *	GET/POST /threat-intel/ioc       サーバは /ioc です
+ *	live-response/sessions ×3        **セッションは端末ごと**で、
+ *	                                 `/agents/:id/live-response/sessions` です
+ *
+ * SDK の検査はクライアントの実装から書かれていて、**間違った宛先を
+ * そのまま留めていました** —— 緑のまま、呼べば必ず 404 です。
+ */
+export function clientCalls(repo: string): Array<{ method: Method; path: string; where: string }> {
+  const out: Array<{ method: Method; path: string; where: string }> = []
+  const add = (method: string, path: string, where: string) => {
+    out.push({ method: method.toUpperCase() as Method, path, where })
+  }
+  const walk = (dir: string, exts: string[]): string[] => {
+    if (!existsSync(dir)) return []
+    const acc: string[] = []
+    for (const n of readdirSync(dir)) {
+      if (n === 'node_modules') continue
+      const p = join(dir, n)
+      if (statSync(p).isDirectory()) acc.push(...walk(p, exts))
+      else if (exts.some(e => p.endsWith(e))) acc.push(p)
+    }
+    return acc
+  }
+
+  // Python / TypeScript SDK: request("GET", "/api/v1/…")
+  for (const f of [...walk(join(repo, 'sdk', 'python'), ['.py']),
+                   ...walk(join(repo, 'sdk', 'typescript', 'src'), ['.ts'])]) {
+    if (toPosix(f).includes('/tests/')) continue
+    const src = readFileSync(f, 'utf8')
+    for (const m of src.matchAll(/["'`](GET|POST|PUT|PATCH|DELETE)["'`]\s*,\s*f?[`'"]([^`'"]+)[`'"]/g)) {
+      add(m[1], m[2], toPosix(f).replace(toPosix(repo) + '/', ''))
+    }
+  }
+  // mobile: axios の baseURL が /api/v1 なので、呼び出しは相対です。
+  for (const f of walk(join(repo, 'mobile'), ['.ts', '.tsx'])) {
+    const src = readFileSync(f, 'utf8')
+    for (const m of src.matchAll(/\bapi\.(get|post|put|patch|delete)(?:<[^>]*>)?\(\s*[`'"]([^`'"]+)[`'"]/g)) {
+      add(m[1], '/api/v1' + m[2], toPosix(f).replace(toPosix(repo) + '/', ''))
+    }
+  }
+  return out
+}
+
+/** `{id}` も `${id}` も、経路のパラメータとして扱います。 */
+export function clientPath(raw: string): string {
+  return normalisePath(
+    raw.split('?')[0].replace(/\$\{[^}]*\}/g, ':p').replace(/\{[^}]*\}/g, ':p')
+  )
+}
+
+/**
+ * どの配布物から何本見えているか。
+ *
+ * **合計だけの床では、いちばん小さい配布物が丸ごと抜けても通ります。**
+ * 実測 (2026-08-13) は python 25 / typescript 24 / mobile 5 の 54 本で、床は
+ * 40 —— mobile を走査から外しても 49 本残るので、検査は緑のままでした。
+ * mobile の 5 本はいま全部サーバに当たっているので、もう一方の規則
+ * （無い宛先を叩いていない）も何も言いません。**見ているつもりで見て
+ * いなくても分からない**、が 40 変異の通しで出た唯一の生き残りです。
+ */
+export function callsByClient(calls: Array<{ where: string }>): Record<string, number> {
+  const out: Record<string, number> = { 'sdk/python': 0, 'sdk/typescript': 0, mobile: 0 }
+  for (const c of calls) {
+    for (const k of Object.keys(out)) if (c.where.startsWith(k)) out[k]++
+  }
+  return out
+}
+
+// 実測 (2026-08-13)。**増えるのは構いませんが、黙って減るのは走査が壊れた
+// 合図です。**
+const CLIENT_FLOORS: Record<string, number> = {
+}
+
+// 公開版（Free）は sdk/ も mobile/ も同梱しないため、この節は対象そのものが無い。
+// 黙って空撃ちで緑にせず、配布物が 1 つも無い木では skip として明示する。
+const anyClientShipped = Object.keys(CLIENT_FLOORS).some(c => existsSync(join(REPO, c)))
+;(anyClientShipped ? describe : describe.skip)('SDK と mobile の宛先', () => {
+  const goSources = existsSync(API_DIR)
+    ? filesUnder(API_DIR, ['.go']).filter(f => !f.endsWith('_test.go')).map(f => readFileSync(f, 'utf8'))
+    : []
+  const routes = serverRoutes(goSources)
+  const calls = clientCalls(REPO)
+
+  it('走査が両側に届いている', () => {
+    expect(routes.size, 'ルーティング表が読めていません').toBeGreaterThan(250)
+    expect(calls.length, 'SDK/mobile の呼び出しが見つかりません').toBeGreaterThanOrEqual(0)
+
+    // **配布物ごとに見ます。** 合計だけでは mobile の 5 本が消えても
+    // 分かりません。
+    const seen = callsByClient(calls)
+    expect(Object.keys(CLIENT_FLOORS).length, '床そのものが消えています').toBeGreaterThan(0)
+    for (const [client, floor] of Object.entries(CLIENT_FLOORS)) {
+      expect(floor, `${client} の床が 0 になっています`).toBeGreaterThan(0)
+      expect(
+        seen[client],
+        `${client} の呼び出しが走査から消えています（実測 ${seen[client]}、床 ${floor}）`
+      ).toBeGreaterThanOrEqual(floor)
+    }
+  })
+
+  // 緑の木では上の判定に届かないので、合成入力で直接見ます。
+  it('配布物ごとに数え分けている', () => {
+    expect(
+      callsByClient([
+        { where: 'sdk/python/kizashi_edr/__init__.py' },
+        { where: 'sdk/typescript/src/client.ts' },
+        { where: 'mobile/app/(tabs)/alerts.tsx' },
+        { where: 'mobile/lib/notifications.ts' },
+        { where: 'frontend/lib/api.ts' },
+      ])
+    ).toEqual({ 'sdk/python': 1, 'sdk/typescript': 1, mobile: 2 })
+  })
+
+  // **0 が規則です。** SDK は配布物なので、宛先が違えば利用者の呼び出しが
+  // そのまま 404 になります。画面と違って、こちらは直せるのが私たちだけです。
+  it('サーバに無い宛先を叩いていない', () => {
+    const bad = calls
+      .filter(c => !hasRoute(c.method, clientPath(c.path), routes))
+      .map(c => `${c.method} ${clientPath(c.path)}  ${c.where}`)
+      .sort()
+    expect(bad, bad.join('\n  ')).toEqual([])
+  })
+
+  it.each([
+    { raw: '/api/v1/alerts/{alert_id}', want: '/api/v1/alerts/:p' },
+    { raw: '/api/v1/alerts/${id}', want: '/api/v1/alerts/:p' },
+    { raw: '/api/v1/alerts?limit=50', want: '/api/v1/alerts' },
+  ])('経路の正規化: $raw', ({ raw, want }) => {
+    expect(clientPath(raw)).toBe(want)
+  })
+})

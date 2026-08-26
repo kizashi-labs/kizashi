@@ -1,0 +1,202 @@
+# EDR Platform — Monitoring Stack
+# Provides Prometheus (metrics collection + alerting) and Grafana (dashboards).
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+#
+# To run monitoring alone (e.g. for local development):
+#   docker compose -f docker-compose.monitoring.yml up -d
+#
+# Access:
+#   Grafana:    http://localhost:3001  (admin / change-me-in-env)
+#   Prometheus: http://localhost:9090
+
+services:
+
+  # ─── Prometheus ──────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=10GB"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
+    ports:
+      - "9090:9090"
+    volumes:
+      # Main scrape / global config
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Pre-computed recording rules
+      - ./prometheus/rules/edr-recording-rules.yml:/etc/prometheus/rules/edr-recording-rules.yml:ro
+      # Alert rules (new, structured file)
+      - ./prometheus/rules/edr-alerts.yml:/etc/prometheus/rules/edr-alerts.yml:ro
+      # Legacy alerts file kept for backwards compatibility
+      - ./prometheus_alerts.yml:/etc/prometheus/alerts.yml:ro
+      # Persistent TSDB storage
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    labels:
+      com.edr.component: "monitoring"
+      com.edr.service: "prometheus"
+
+  # ─── Alertmanager ────────────────────────────────────────────────────────
+  #
+  # これが無いあいだ、31本のアラートは評価され、発火し、Prometheus の画面に
+  # 赤く出て、そこで終わっていました。**ルールを書くことと、誰かに届くことは
+  # 別です。**
+  #
+  # 宛先はリポジトリに置きません。環境変数を起動時にファイルへ落とし、
+  # 設定側は api_url_file / routing_key_file で読みます（Alertmanager は
+  # 設定ファイル内で環境変数を展開しないため）。
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    # 秘密を tmpfs に書いてから起動します。イメージのディスクには残りません。
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        mkdir -p /etc/alertmanager/secrets
+        if [ -z "$${ALERT_SLACK_WEBHOOK_URL}" ]; then
+          echo "ALERT_SLACK_WEBHOOK_URL が未設定です。" \
+               "この状態で起動すると、アラートはどこにも行きません。" >&2
+          exit 1
+        fi
+        printf '%s' "$${ALERT_SLACK_WEBHOOK_URL}" > /etc/alertmanager/secrets/slack_webhook_url
+        printf '%s' "$${ALERT_PAGERDUTY_KEY}" > /etc/alertmanager/secrets/pagerduty_key
+        chmod 600 /etc/alertmanager/secrets/*
+        exec /bin/alertmanager \
+          --config.file=/etc/alertmanager/alertmanager.yml \
+          --storage.path=/alertmanager \
+          --web.external-url=$${ALERT_EXTERNAL_URL:-http://localhost:9093}
+    environment:
+      ALERT_SLACK_WEBHOOK_URL: ${ALERT_SLACK_WEBHOOK_URL:-}
+      ALERT_PAGERDUTY_KEY: ${ALERT_PAGERDUTY_KEY:-}
+      ALERT_EXTERNAL_URL: ${ALERT_EXTERNAL_URL:-http://localhost:9093}
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    tmpfs:
+      - /etc/alertmanager/secrets:mode=700
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    labels:
+      com.edr.component: "monitoring"
+      com.edr.service: "alertmanager"
+
+  # ─── Grafana ─────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # Allow embedding in iframes (optional, disable in high-security environments)
+      GF_SECURITY_ALLOW_EMBEDDING: "false"
+      # Unified alerting is enabled by default in Grafana 10
+      GF_ALERTING_ENABLED: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      # PostgreSQL datasource connection (used by provisioning/datasources/prometheus.yml)
+      GF_POSTGRES_HOST: ${POSTGRES_HOST:-postgres:5432}
+      GF_POSTGRES_DB: ${POSTGRES_DB:-edrdb}
+      GF_POSTGRES_USER: ${POSTGRES_USER:-edr}
+      GF_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      # Dashboard JSON files
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      # Provisioning: datasources, dashboard providers, alerting contact points
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # Persistent Grafana state (annotations, user preferences, etc.)
+      - grafana_data:/var/lib/grafana
+    networks:
+      - monitoring
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    labels:
+      com.edr.component: "monitoring"
+      com.edr.service: "grafana"
+
+  # ─── Node Exporter (host metrics: CPU, memory, disk, network) ────────────
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    restart: unless-stopped
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - monitoring
+    expose:
+      - "9100"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    labels:
+      com.edr.component: "monitoring"
+      com.edr.service: "node-exporter"
+
+# ─── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  monitoring:
+    driver: bridge
+  internal:
+    # Must match the network defined in docker-compose.prod.yml so Prometheus
+    # can scrape edr-api, edr-detection, edr-ingestion, and nats.
+    external: true
+    name: ${COMPOSE_PROJECT_NAME:-deploy}_internal
+
+# ─── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  prometheus_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  grafana_data:
+    driver: local

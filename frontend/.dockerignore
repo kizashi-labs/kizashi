@@ -1,0 +1,7 @@
+node_modules
+.next
+.git
+*.md
+# ローカル開発用環境変数ファイルを本番ビルドから除外
+.env.local
+.env.*.local

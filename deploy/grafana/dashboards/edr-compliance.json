@@ -1,0 +1,67 @@
+{
+  "__inputs": [],
+  "__requires": [{"type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0"}],
+  "annotations": {"list": []},
+  "description": "EDR Compliance Dashboard - SOC2/ISO27001/PCI-DSS",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "postgres", "uid": "${pgdatasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 60}, {"color": "green", "value": 80}]}, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "auto"},
+      "title": "SOC 2 スコア",
+      "type": "stat",
+      "targets": [{"datasource": {"type": "postgres", "uid": "${pgdatasource}"}, "rawSql": "SELECT 100.0 * COUNT(CASE WHEN status='pass' THEN 1 END) / NULLIF(COUNT(*),0) FROM compliance_controls cc LEFT JOIN compliance_evidence ce ON ce.control_id=cc.id AND ce.collected_at > NOW()-INTERVAL '30 days' WHERE cc.framework_id='soc2' GROUP BY cc.framework_id", "format": "table", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "${pgdatasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 60}, {"color": "green", "value": 80}]}, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0},
+      "id": 2,
+      "options": {"colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "auto"},
+      "title": "ISO 27001 スコア",
+      "type": "stat",
+      "targets": [{"datasource": {"type": "postgres", "uid": "${pgdatasource}"}, "rawSql": "SELECT 100.0 * COUNT(CASE WHEN status='pass' THEN 1 END) / NULLIF(COUNT(*),0) FROM compliance_controls cc LEFT JOIN compliance_evidence ce ON ce.control_id=cc.id AND ce.collected_at > NOW()-INTERVAL '30 days' WHERE cc.framework_id='iso27001' GROUP BY cc.framework_id", "format": "table", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "${pgdatasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 60}, {"color": "green", "value": 80}]}, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0},
+      "id": 3,
+      "options": {"colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "auto"},
+      "title": "PCI DSS スコア",
+      "type": "stat",
+      "targets": [{"datasource": {"type": "postgres", "uid": "${pgdatasource}"}, "rawSql": "SELECT 100.0 * COUNT(CASE WHEN status='pass' THEN 1 END) / NULLIF(COUNT(*),0) FROM compliance_controls cc LEFT JOIN compliance_evidence ce ON ce.control_id=cc.id AND ce.collected_at > NOW()-INTERVAL '30 days' WHERE cc.framework_id='pcidss' GROUP BY cc.framework_id", "format": "table", "refId": "A"}]
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 38,
+  "tags": ["edr", "compliance"],
+  "templating": {
+    "list": [
+      {
+      "current": {},
+      "hide": 0,
+      "includeAll": false,
+      "label": "Database",
+      "name": "pgdatasource",
+      "options": [],
+      "query": "postgres",
+      "refresh": 1,
+      "type": "datasource"
+    }
+    ]
+  },
+  "time": {"from": "now-30d", "to": "now"},
+  "timepicker": {},
+  "timezone": "Asia/Tokyo",
+  "title": "EDR Compliance",
+  "uid": "edr-compliance",
+  "version": 1
+}

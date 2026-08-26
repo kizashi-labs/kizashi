@@ -1,0 +1,129 @@
+# 公開版の Dependabot 設定。
+#
+# 本流の設定は minor/patch をグループ化しているが、major は個別 PR になる。
+# 長く運用したリポジトリではピン留めが溜まっているため、新規に公開したリポジトリでは
+# その major が一斉に出る（公開初日に 20 件）。維持者が 1 人の公開版では、これは
+# レビューできない量になる。
+#
+# そこで:
+#   - github-actions と docker は major も含めて 1 本に束ねる（壊れても切り戻しが容易）
+#   - Go / npm の major は個別のまま残す（破壊的変更の切り分けに必要）
+#   - 代わりに open-pull-requests-limit を絞り、キューの長さを抑える
+#
+# セキュリティ更新はこの上限とグループを迂回して即時に届く。
+
+version: 2
+
+updates:
+  # ── Go modules: server ────────────────────────────────────────
+  - package-ecosystem: gomod
+    directory: /server
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - go
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 3
+
+  # ── Go modules: agent ─────────────────────────────────────────
+  - package-ecosystem: gomod
+    directory: /agent
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - go
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 3
+
+  # ── npm: frontend ─────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - javascript
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    versioning-strategy: increase-if-necessary
+    open-pull-requests-limit: 3
+
+  # ── GitHub Actions ────────────────────────────────────────────
+  # major も束ねる。アクションの major 更新は入力の名前が変わる程度のことが多く、
+  # 壊れたら 1 本戻せばよい。
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "06:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      actions:
+        update-types:
+          - major
+          - minor
+          - patch
+    open-pull-requests-limit: 2
+
+  # ── Docker base images ────────────────────────────────────────
+  - package-ecosystem: docker
+    directory: /server
+    schedule:
+      interval: monthly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - docker
+    groups:
+      base-images:
+        update-types:
+          - major
+          - minor
+          - patch
+    open-pull-requests-limit: 1
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: monthly
+      day: monday
+      time: "08:00"
+      timezone: UTC
+    labels:
+      - dependencies
+      - docker
+    groups:
+      base-images:
+        update-types:
+          - major
+          - minor
+          - patch
+    open-pull-requests-limit: 1

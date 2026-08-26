@@ -1,0 +1,132 @@
+name: Verify prevention builds (manual, minimal cost)
+
+# Answers one question, as cheaply as possible: **do the enforcing builds still
+# compile?**
+#
+# Why this exists separately from ci.yml: the claims that matter in PR #681 —
+# that `-tags "ebpf prevention"` builds and that the macOS ESF variant compiles
+# natively — cannot be checked on a developer machine. The Linux build needs
+# clang plus a vmlinux.h, and the ESF build needs a macOS host with the
+# EndpointSecurity SDK. Triggering ci.yml to find out costs the entire suite:
+# server tests with Postgres and NATS services, the frontend build, Playwright
+# E2E, Trivy, Semgrep, Gitleaks, SDK tests — dozens of jobs, none of which have
+# anything to say about whether the prevention build compiles.
+#
+# This runs ONE ubuntu job (and optionally one macOS job) and nothing else.
+# Use it when Actions budget is scarce and you need exactly this answer.
+#
+# NOTE: this does not bypass a budget block. When the account's Actions budget
+# is exhausted, *every* job — including a manual dispatch — fails before its
+# first step with "The job was not started because an Actions budget is
+# preventing further use". What this buys is that once any budget is available,
+# getting the answer costs one runner instead of the whole suite.
+#
+# It deliberately publishes nothing: no artifacts, no downloads/ commit, no
+# coverage upload. Shipping is agent-ebpf.yml's and agent-macos-esf.yml's job.
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_macos:
+        description: 'Also run the macOS ESF native build (macOS runners bill at ~10x)'
+        type: boolean
+        default: false
+
+# workflow_dispatch 専用。人が意図して起動する検証なので打ち切らない。
+# 同時に 2 本走らせても意味が無いぶん、直列化だけしておく。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  linux-prevention:
+    timeout-minutes: 25
+    name: Linux — build & test with "ebpf prevention"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      # Same recipe as ci.yml's agent-test job. The BPF objects are CO-RE, so
+      # the vmlinux.h only has to describe *a* recent kernel for the compile to
+      # succeed — the runner's own BTF is used because it is already there.
+      - name: Generate eBPF bindings (report-only + prevention LSM)
+        timeout-minutes: 10
+        working-directory: agent
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libbpf-dev libelf-dev zlib1g-dev pkg-config gcc make git
+          test -r /sys/kernel/btf/vmlinux || { echo "runner kernel has no BTF (/sys/kernel/btf/vmlinux)"; exit 1; }
+          git clone --depth 1 --recurse-submodules https://github.com/libbpf/bpftool.git /tmp/bpftool
+          make -C /tmp/bpftool/src
+          sudo /tmp/bpftool/src/bpftool btf dump file /sys/kernel/btf/vmlinux format c > ebpf/vmlinux.h
+          cd internal/platform/linux
+          gen() {
+            GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+              -tags "$1" -cc clang \
+              -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+              "$2" "../../../ebpf/$3"
+          }
+          gen "ebpf"            NetworkMonitor   network_monitor.bpf.c
+          gen "ebpf"            FilelessMonitor  fileless_monitor.bpf.c
+          gen "ebpf prevention" PreventionLSM    prevention_lsm.bpf.c
+          gen "ebpf prevention" TamperLSM        tamper_lsm.bpf.c
+          gen "ebpf prevention" CredAccessLSM    credaccess_lsm.bpf.c
+          # Added after agent-ebpf.yml's last successful run; their absence is
+          # what broke `-tags "ebpf prevention"` on main.
+          gen "ebpf prevention" HostIntegrityMonitor hostintegrity_monitor.bpf.c
+          gen "ebpf prevention" TLSMonitor           tls_monitor.bpf.c
+
+      - name: Build & test the enforcing variant
+        working-directory: agent
+        run: |
+          go build -tags "ebpf prevention" -ldflags="-s -w" -o /tmp/edr-agent-ebpf   ./cmd/agent/...
+          go build -tags "ebpf prevention" -ldflags="-s -w" -o /tmp/edr-watchdog-ebpf ./cmd/watchdog/...
+          go vet  -tags "ebpf prevention" ./...
+          go test -tags "ebpf prevention" -timeout 120s ./...
+          ls -la /tmp/edr-agent-ebpf /tmp/edr-watchdog-ebpf
+
+      # Cheap and needs no toolchain, so it rides along: these are the tag
+      # combinations that were type-checked by nothing at all before PR #681.
+      - name: Cross-platform vet (windows/darwin prevention variants)
+        working-directory: agent
+        run: |
+          GOOS=windows GOARCH=amd64 go vet -tags prevention ./...
+          GOOS=darwin  GOARCH=arm64 go vet -tags esf ./...
+          GOOS=darwin  GOARCH=arm64 go vet -tags "esf prevention" ./...
+
+  macos-esf:
+    timeout-minutes: 20
+    name: macOS — native ESF compile
+    runs-on: macos-14
+    if: inputs.include_macos
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Verify the EndpointSecurity SDK is available
+        run: |
+          sdk="$(xcrun --show-sdk-path)"
+          hdr="$sdk/System/Library/Frameworks/EndpointSecurity.framework/Headers/EndpointSecurity.h"
+          test -r "$hdr" || { echo "EndpointSecurity.h not found under $sdk" >&2; exit 1; }
+          echo "found: $hdr"
+
+      # CGO_ENABLED=1 is the whole point: with cgo off the ESF collector is
+      # excluded from the build and this proves nothing.
+      - name: Build ESF variant
+        working-directory: agent
+        env:
+          CGO_ENABLED: '1'
+        run: |
+          GOOS=darwin GOARCH=arm64 go build -tags esf              -o /tmp/edr-agent-esf      ./cmd/agent
+          GOOS=darwin GOARCH=arm64 go build -tags "esf prevention" -o /tmp/edr-agent-esf-prev ./cmd/agent
+          go vet -tags esf ./...
+          ls -la /tmp/edr-agent-esf /tmp/edr-agent-esf-prev

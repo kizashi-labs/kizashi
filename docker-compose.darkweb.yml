@@ -1,0 +1,46 @@
+# ──────────────────────────────────────────────
+# Kizashi — ダークウェブ監視オーバーレイ（オプトイン）
+#
+#   docker compose -f docker-compose.yml -f docker-compose.darkweb.yml up -d
+#
+# ベース構成にこれを重ねると、次の**外向き通信**が有効になります。
+# 既定構成では一切発生しません。
+#
+#   1. https://raw.githubusercontent.com/joshhighet/ransomwatch/main/groups.json
+#      … ランサムウェアリークサイトの .onion URL と被害者リスト（起動直後 + 毎日 3:00）
+#   2. https://api.ransomware.live/… … 被害者リスト（起動直後 + 6 時間ごと）
+#   3. Tor SOCKS5 経由での .onion 到達性チェック（毎日 3:00、TOR_PROXY_URL 設定時のみ）
+#
+# 送信するのは取得要求だけで、自組織のテレメトリは送りません。ただし
+# 「その IP がランサムウェアリークサイトを継続的に見に行っている」という事実は
+# 通信先に観測されます。それが許容できない環境では有効にしないでください。
+# ──────────────────────────────────────────────
+
+services:
+
+  # Tor SOCKS5 プロキシ。.onion の到達性チェックにだけ使います。
+  # kizashi-external に置くのは、api から名前解決できるようにするためと、
+  # kizashi-internal が internal:true で外に出られないため。
+  tor:
+    image: peterdavehello/tor-socks-proxy:latest
+    container_name: kizashi-tor
+    restart: unless-stopped
+    ports:
+      # ホストからは localhost のみ。外部公開しない。
+      - "127.0.0.1:9050:9050"
+    healthcheck:
+      test: ["CMD", "pgrep", "tor"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - kizashi-external
+
+  api:
+    environment:
+      DARKWEB_MONITOR_ENABLED: "true"
+      TOR_PROXY_URL: ${TOR_PROXY_URL:-socks5://tor:9050}
+    depends_on:
+      tor:
+        condition: service_healthy

@@ -1,0 +1,191 @@
+name: Agent eBPF Build (Linux prevention/tamper)
+
+# Builds the eBPF/LSM-enabled Linux agent variant (edr-agent-linux-amd64-ebpf)
+# with `-tags "ebpf prevention"` and ships it to downloads/. Kept SEPARATE from
+# ci.yml so it can be iterated cheaply via workflow_dispatch (the heavy ci.yml
+# suite — E2E/Trivy — is not triggered). The prevention/tamper bpf2go objects are
+# generated in-CI (clang + runner BTF), so they are not committed to the repo.
+# See docs/design/Linux改ざん防止と実行前防御設計.md 付録B (Ph6 配布).
+#
+# The standard polling build (edr-agent-linux-amd64, no tags) continues to ship
+# via ci.yml; this variant is the opt-in eBPF/prevention build for lsm=bpf hosts.
+
+# Dispatch-only shipping meant the committed
+# downloads/edr-agent-linux-amd64-ebpf silently fell behind main — it sat at a
+# three-week-old build while the polling variant (shipped by ci.yml on every
+# main push) tracked HEAD. Two agent binaries built from different sources is
+# worse than one: the enforcing variant is exactly the build whose fixes matter
+# most, and "the LSM build is stale" is invisible from the outside because the
+# file is present and installs fine.
+#
+# Staleness is bounded at one merge: the workflow runs on every main push that
+# touches the agent or the proto. Between 2026-08-10 and 2026-08-14 it ran weekly
+# instead, as a temporary measure while the Actions budget was exhausted; the
+# budget is restored and the intended trigger is back. The weekly schedule is
+# NOT kept alongside it — a cron that fires on an already-current tree only
+# spends runner minutes rebuilding bpftool from source.
+on:
+  workflow_dispatch: {}
+
+  push:
+    branches: [main]
+    paths:
+      - 'agent/**'
+      - 'proto/**'
+      - '.github/workflows/agent-ebpf.yml'
+
+# ここは **打ち切らない**（cancel-in-progress: false）。
+#
+# このワークフローはビルドしたバイナリを downloads/ に git add / commit /
+# push する。途中で切ると、コミット済みだが push 前、あるいは push の
+# リトライ中といった中途半端な状態で終わる。同時に 2 本走れば同じブランチへの
+# push が競合する。直列化だけして、始まった実行は最後まで走らせる。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-ebpf:
+    name: Build edr-agent-linux-amd64-ebpf
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # to commit the binary to downloads/
+    steps:
+      # The weekly schedule is a temporary measure taken while the Actions
+      # budget was exhausted (see the header). Reverting it is a manual step
+      # with nothing to enforce it, so the workflow says so itself — every
+      # scheduled run, in the place someone is already looking. The warning
+      # disappears when the trigger is restored, because it only fires on
+      # `schedule`.
+      - name: Reminder — this workflow is on its temporary weekly schedule
+        if: github.event_name == 'schedule'
+        run: |
+          echo "::warning title=一時措置が残っています::agent-ebpf.yml は Actions 予算枯渇のため週次で動作しています（本来は main への agent/proto 変更ごと）。予算が回復済みなら、ヘッダの手順で schedule を push トリガに戻してください。防御版バイナリの陳腐化が最大7日まで許容されている状態です。"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Install eBPF toolchain (clang + bpftool from source)
+        timeout-minutes: 10
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libbpf-dev libelf-dev zlib1g-dev pkg-config gcc make git
+          # The apt `bpftool` package has no install candidate on the runner's
+          # very-new Azure kernel (the wrapper demands a per-kernel linux-tools
+          # build that doesn't exist). Build the kernel-independent bpftool from
+          # source instead — only used to dump the runner's BTF to vmlinux.h.
+          test -r /sys/kernel/btf/vmlinux || { echo "runner kernel has no BTF (/sys/kernel/btf/vmlinux)"; exit 1; }
+          git clone --depth 1 --recurse-submodules https://github.com/libbpf/bpftool.git /tmp/bpftool
+          make -C /tmp/bpftool/src
+          echo "BPFTOOL=/tmp/bpftool/src/bpftool" >> "$GITHUB_ENV"
+          clang --version | head -1
+          /tmp/bpftool/src/bpftool version
+
+      - name: Generate vmlinux.h + prevention/tamper bpf objects
+        working-directory: agent
+        run: |
+          sudo "$BPFTOOL" btf dump file /sys/kernel/btf/vmlinux format c > ebpf/vmlinux.h
+          wc -l ebpf/vmlinux.h
+          # ProcessMonitor objects are committed; only Prevention + Tamper need
+          # generation (matches the proven EC2 recipe).
+          cd internal/platform/linux
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags "ebpf prevention" -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            PreventionLSM ../../../ebpf/prevention_lsm.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags "ebpf prevention" -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            TamperLSM ../../../ebpf/tamper_lsm.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags "ebpf prevention" -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            CredAccessLSM ../../../ebpf/credaccess_lsm.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags "ebpf prevention" -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            NetworkMonitor ../../../ebpf/network_monitor.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags "ebpf prevention" -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            FilelessMonitor ../../../ebpf/fileless_monitor.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags ebpf -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            FileMonitor ../../../ebpf/file_monitor.bpf.c
+          # HostIntegrityMonitor and TLSMonitor landed AFTER this workflow last
+          # ran successfully (2026-07-20) and were never added here, so the
+          # `ebpf prevention` build has been failing ever since with
+          # `undefined: HostIntegrityMonitorObjects` / `undefined:
+          # TLSMonitorObjects`. Nobody saw it because this workflow only ran on
+          # manual dispatch and nothing else compiled that tag combination.
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags "ebpf prevention" -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            HostIntegrityMonitor ../../../ebpf/hostintegrity_monitor.bpf.c
+          GOPACKAGE=linux go run github.com/cilium/ebpf/cmd/bpf2go \
+            -tags "ebpf prevention" -cc clang \
+            -cflags "-O2 -g -target bpf -D__TARGET_ARCH_x86" \
+            TLSMonitor ../../../ebpf/tls_monitor.bpf.c
+          ls -1 preventionlsm_bpf* tamperlsm_bpf* credaccesslsm_bpf* filemonitor_bpf* \
+                networkmonitor_bpf* filelessmonitor_bpf* \
+                hostintegritymonitor_bpf* tlsmonitor_bpf*
+
+      - name: Build eBPF agent
+        working-directory: agent
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: |
+          go build -tags "ebpf prevention" -ldflags="-s -w" \
+            -o edr-agent-linux-amd64-ebpf ./cmd/agent/...
+          ls -la edr-agent-linux-amd64-ebpf
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: agent-linux-amd64-ebpf
+          path: agent/edr-agent-linux-amd64-ebpf
+
+      - name: Commit binary to downloads/
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # ci.yml's binary-commit job (and any merge) may push to main concurrently.
+          # Re-apply onto the new tip rather than `pull --rebase`: this is a binary,
+          # so a same-file race — another run of this workflow — is a conflict rebase
+          # cannot resolve, and it would leave the loop stuck mid-rebase with every
+          # later attempt failing worse. "Last build wins" is the semantics we want.
+          # The downloaded artifact lives outside downloads/ and is untracked, so a
+          # reset doesn't destroy it and we can simply re-copy each attempt.
+          #
+          # **downloads/ は .gitignore に入っているので、クローン直後には
+          # 存在しません。** 下の cp は `bash -e` の下で即座に失敗し、
+          # このワークフローは 4 回走って 4 回ともここで落ちていました
+          # （ビルド自体は毎回成功していて、最後の1手だけが通っていない）。
+          # `git reset --hard` を挟む再試行でも消えるので、ループの中で作ります。
+          for i in 1 2 3 4 5; do
+            mkdir -p downloads
+            cp agent/edr-agent-linux-amd64-ebpf downloads/edr-agent-linux-amd64-ebpf
+            sha256sum downloads/edr-agent-linux-amd64-ebpf | awk '{print $1}' > downloads/edr-agent-linux-amd64-ebpf.sha256
+            git add -f downloads/edr-agent-linux-amd64-ebpf downloads/edr-agent-linux-amd64-ebpf.sha256
+            if git diff --staged --quiet; then
+              echo "no change"; exit 0
+            fi
+            git commit -m "ci: update edr-agent-linux-amd64-ebpf (prevention/tamper) [skip ci]"
+            if git push; then echo "pushed on attempt $i"; exit 0; fi
+            echo "push rejected — re-applying onto the updated main (attempt $i)"
+            git fetch origin main
+            git reset --hard origin/main
+            sleep 3
+          done
+          echo "push failed after retries"; exit 1

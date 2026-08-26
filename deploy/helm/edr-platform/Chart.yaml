@@ -1,0 +1,15 @@
+apiVersion: v2
+name: edr-platform
+description: Enterprise Detection and Response Platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - edr
+  - security
+  - detection
+  - response
+maintainers:
+  - name: EDR Platform Team
+sources:
+  - https://github.com/edr-platform/edr-platform

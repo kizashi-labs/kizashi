@@ -1,0 +1,989 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    # Docs/markdown-only changes don't affect builds or deploys, so skip CI
+    # (and the downstream docker.yml deploy, which is workflow_run-triggered).
+    # A mixed PR (code + docs) still runs CI because path filters only skip when
+    # ALL changed files match.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Go: server ────────────────────────────────────────────────
+  # ── 変更のあった領域を判定する ──────────────────────────────
+  # PR ごとに 18 ジョブ全部を回すと、サーバだけの変更でもエージェントの
+  # 6 ターゲット・クロスビルドや Trivy のイメージスキャンが走る。実測で
+  # 1 PR あたり 40 分超を消費し、Actions の予算を 2 度使い切った。
+  #
+  # 第三者製のフィルタ・アクションは使わず git で判定する。セキュリティ製品の
+  # CI に外部アクションを増やしたくないため。判定できない場合は必ず「全部走らせる」
+  # に倒す（取りこぼして緑になるより、余分に回すほうがまし）。
+  changes:
+    timeout-minutes: 5
+    name: Changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      agent:    ${{ steps.filter.outputs.agent }}
+      server:   ${{ steps.filter.outputs.server }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      sdk:      ${{ steps.filter.outputs.sdk }}
+      rules:    ${{ steps.filter.outputs.rules }}
+      all:      ${{ steps.filter.outputs.all }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # main への push は絞らない。
+          #
+          # PR で絞るのはコスト削減として妥当だが、main まで絞ると **一度赤くなった
+          # ジョブは、その領域を触る PR が来るまで二度と走らない**。実際 #735 が
+          # Agent Tests を落としたまま着地し、以後の PR が agent/ を触らなかったため
+          # 8 日間スキップされ続けた。気づいたのは無関係の PR が偶然 agent/ を
+          # 変更したからで、監視していたからではない (負債台帳 P5-35)。
+          #
+          # チェック一覧の上では「走って通った」と「そもそも走っていない」の区別が
+          # 付かない。マージ 1 回ぶんのコストで、main の全ジョブに常に最新の結論が
+          # 存在する状態を買う。
+          if [ "$EVENT" = "push" ] && [ "$REF" = "refs/heads/main" ]; then
+            echo "main への push のため、絞らず全ジョブを実行します (P5-35)"
+            for k in agent server frontend sdk rules all; do echo "$k=true" >> "$GITHUB_OUTPUT"; done
+            exit 0
+          fi
+
+          files=""
+          if [ "$EVENT" = "pull_request" ]; then
+            git fetch --no-tags origin "$BASE_REF" >/dev/null 2>&1 || true
+            files="$(git diff --name-only "origin/$BASE_REF...HEAD" || true)"
+          elif [ -n "${BEFORE:-}" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]                && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            files="$(git diff --name-only "$BEFORE" "$SHA" || true)"
+          fi
+
+          # 差分が取れなかった (初回 push / force push / 履歴なし) ときは全部走らせる
+          if [ -z "$files" ]; then
+            echo "変更ファイルを特定できませんでした。全ジョブを実行します。"
+            for k in agent server frontend sdk rules all; do echo "$k=true" >> "$GITHUB_OUTPUT"; done
+            exit 0
+          fi
+
+          echo "変更ファイル:"; echo "$files" | sed 's/^/  /'
+
+          # パイプにしないのは `set -o pipefail` のためです。
+          #
+          # `echo "$files" | grep -qE …` は、**一致したときほど失敗します**。
+          # `grep -q` は最初の一致で即座に終了し、まだ書き込み途中の `echo` が
+          # SIGPIPE を受けて 141 で終わる。pipefail はパイプライン全体の状態を
+          # その 141 にするので、`has` は「一致しなかった」を返します。一覧が
+          # パイプバッファ (64KB) に収まるうちは起きないので、**差分が大きい
+          # PR でだけ、しかも前の方で一致する領域でだけ**外れます。
+          #
+          # 実測 2026-08-14 (この PR, 1259 ファイル / 57KB): 出力された一覧に
+          # `agent/Makefile` も `.github/workflows/ci.yml` も入っているのに
+          # 判定は `agent=false all=false` で、Agent Tests / Agent Build /
+          # govulncheck が丸ごとスキップされました。**「走って通った」と
+          # 「そもそも走っていない」がチェック一覧の上で区別できない**という、
+          # 下の P5-35 に書いてあるのとまったく同じ状態を、絞り込みの実装自体が
+          # 作っていたことになります。
+          #
+          # here-string にすればパイプラインが無いので pipefail は関係なく、
+          # 一覧の大きさにも一致位置にも依存しません。
+          has() { grep -qE "$1" <<<"$files"; }
+
+          # CI 定義・proto・共通設定が変わったら全部走らせる。
+          # proto は agent と server の両方が依存し、ズレると実行時にしか露見しない。
+          #
+          # scripts/ はここに入れていない。CI はこのディレクトリのものを
+          # 実行しないので、触るたびに全ジョブを回すのは消費の無駄になる
+          # （Actions の予算はこのファイルの冒頭に書いたとおり実際に枯渇させた）。
+          # ただし scripts/verify.sh だけは、このワークフローと
+          # merge-gate.yml / security.yml のゲートを 1:1 で再現したもの。
+          # **ここのジョブやステップを足し引きしたら、あちらも合わせて直す
+          # こと。** 片方だけ変わると「ローカルで緑なのに CI で落ちる」、
+          # あるいはもっと悪い「ローカルで緑だが CI にしか無い検査を通して
+          # いない」状態になる。
+          #
+          # 追従は目視で確認しないこと。ステップ名を機械的に列挙して 1 行ずつ
+          # 消し込む。初版はこの手順を踏まなかったために 7 件取りこぼした
+          # （golangci-lint 丸ごと、TEST_DATABASE_URL / NATS_URL、
+          # integration タグの E2E、migration 適用、eBPF バインディングの
+          # 鮮度検査、クロスコンパイル）。詳細は
+          # docs/CI・デプロイ運用とコスト最適化.md の 6-1-1。
+          #
+          #   awk '/^  [a-z][a-z0-9_-]*:[ \t]*$/ {print "JOB " $1}
+          #        /^      - name: / {print "  " $0}' .github/workflows/ci.yml
+          all=false
+          if has '^\.github/workflows/' || has '^proto/' || has '^docker-compose' || has '^Makefile'; then
+            all=true
+          fi
+
+          agent=false;    has '^agent/'                      && agent=true
+          # migrations は server のテストが実 DB に適用するので server 側に含める
+          server=false;   has '^server/'                     && server=true
+          frontend=false; has '^frontend/'                   && frontend=true
+          sdk=false;      has '^sdk/'                        && sdk=true
+          rules=false;    has '^rules/|^server/migrations/'  && rules=true
+
+          {
+            echo "agent=$agent"; echo "server=$server"; echo "frontend=$frontend"
+            echo "sdk=$sdk"; echo "rules=$rules"; echo "all=$all"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "判定: agent=$agent server=$server frontend=$frontend sdk=$sdk rules=$rules all=$all"
+
+  server-test:
+    timeout-minutes: 30
+    name: Server Tests (Go)
+    needs: changes
+    if: needs.changes.outputs.server == 'true' || needs.changes.outputs.all == 'true'
+    runs-on: ubuntu-latest
+    # カバレッジの表を PR にコメントするので pull-requests: write が要る
+    # （旧 coverage.yml から移設。下の「Post coverage comment on PR」を参照）。
+    # ジョブ単位で付ける。トップレベルに置くと他のジョブの既定権限まで
+    # 上書きしてしまう。
+    permissions:
+      contents: read
+      pull-requests: write
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: edrplatform_test
+          POSTGRES_USER: edr
+          POSTGRES_PASSWORD: testpassword
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U edr -d edrplatform_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      nats:
+        image: nats:2.10-alpine
+        ports: ["4222:4222"]
+        options: >-
+          --health-cmd "nc -z localhost 4222 || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # golangci-lint の --new-from-merge-base に必要（origin/main との比較）。
+          fetch-depth: 0
+
+      - name: Set up Go
+        timeout-minutes: 10
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Run migrations
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+        run: |
+          for f in migrations/*.sql; do
+            psql "$DATABASE_URL" -f "$f" 2>/dev/null || true
+          done
+
+      # gofmt ゲート。未整形のまま入ったファイルが 337 件まで積み上がっていた
+      # (この PR で一括整形)。CI に検出が無いのが原因なので、ここで塞ぐ。
+      #
+      # gofmt -l は未整形ファイルのパスを出すだけで終了コードは 0 のため、
+      # 出力が空であることを test -z で確認する。差分そのものは -d で出す。
+      - name: gofmt
+        working-directory: server
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "以下のファイルが gofmt 未整形です:"
+            gofmt -l .
+            echo "--- 差分 ---"
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: go vet
+        working-directory: server
+        run: go vet ./...
+
+      # staticcheck はバージョンを固定する。@latest は「コードが変わっていないのに
+      # CI が赤くなる」経路そのもので、golangci-lint 側で実際に起きた
+      # (docs/ops/CI負債_調査と是正.md)。上げるときは意図的に上げる。
+      - name: staticcheck
+        timeout-minutes: 10
+        working-directory: server
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          staticcheck ./...
+
+      # golangci-lint: errcheck/gosec/bodyclose 等の厳選セットを追加（.golangci.yml）。
+      # 既存バックログは段階導入のため、--new-from-merge-base で「新規・変更コードのみ」を
+      # ゲートする（main push 時は差分なし）。全体スキャンはローカルで実施。
+      #
+      # 公式アクションを使う理由: `go install …@latest` は golangci-lint の依存を
+      # その場でモジュール解決するため、リンタの依存が1つでも取得できなくなると
+      # コード変更ゼロで CI が落ちる。2026-08-03 に実際に発生した:
+      #
+      #   unqueryvet.go:4:2: github.com/MirrexOne/unqueryvet@v1.5.4:
+      #   reading https://proxy.golang.org/…/@v/v1.5.4.zip: 403 Forbidden
+      #
+      # アクションはビルド済みリリースバイナリを取得するので、リンタ側の依存解決が
+      # そもそも起きない。この故障クラスが構造的に消える。version も固定する。
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
+        with:
+          version: v2.12.2
+          working-directory: server
+          args: --new-from-merge-base=origin/main ./...
+
+      # NOTE: govulncheck はこのジョブには置かない。server-vulncheck ジョブを参照。
+
+      - name: Unit tests (with coverage)
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+          # TEST_DATABASE_URL activates the DB-backed handler integration tests
+          # (testPool in handlers_test.go) which otherwise t.Skip(). Points at the
+          # same migrated postgres service so the integration suite actually runs.
+          TEST_DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+          NATS_URL: nats://localhost:4222
+        # -timeout は **package ごと** に効きます。120s では
+        # internal/api/handlers と internal/store が、まだテストを走らせている
+        # 途中で打ち切られていました（実測 2026-08-13: 120.855s / 120.122s、
+        # どちらも 0s のテストを走らせている最中に panic）。**遅いのを隠す
+        # ための引き上げではありません** —— この2つは 120s では終わりません:
+        #
+        #   handlers  testDB(t) が 280 か所。1テストにつき pool を1つ開きます
+        #   -race     に加えて、実データベース越しの往復
+        #
+        # 打ち切られている間は、その package のテスト結果もカバレッジも
+        # 「落ちた」以上のことを何も言いません。まず最後まで走らせます。
+        # pool の共有は測ってから別途（280 個は明らかに要りません）。
+        run: |
+          go test -race -timeout 600s \
+            -coverprofile=coverage.out -covermode=atomic \
+            ./...
+
+      # RLS を fail-closed にしたときに何が起きるかを、**落とす前に**測る。
+      #
+      # 4 表 (agents / alerts / incidents / users) の RLS には、まだ
+      # 「app.tenant_id が未設定なら全行」の抜け道が残っている。落とすと、
+      # テナントも名乗りも持たない接続は 0 行になる。**壊れる向きが
+      # 「静かに 0 行」**なので、落としてから気づくのでは遅い。
+      #
+      # この検査は方針を厳格版に差し替えて 2 テナントで実測し、必ず戻す。
+      # **DB を専有する**ので、上の `go test ./...`（package を並列に
+      # 走らせる）とは混ぜられない —— 混ぜると他 package が巻き添えで
+      # 落ちて不安定になり、不安定な検査は無視され、無視される検査は
+      # 消える。だから別の step で、その package だけを走らせる。
+      - name: RLS fail-closed rehearsal (exclusive database)
+        working-directory: server
+        env:
+          TEST_DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+          RLS_FAILCLOSED: "1"
+        run: |
+          go test -timeout 180s ./internal/store/ -run 'FailClosed|StrictSwap|AppRoleExists' -v
+
+      # Synthetic-injection E2E: drives crafted events through the real
+      # AlertPipeline → real Postgres INSERT path and asserts an alert row lands.
+      # Tagged `integration` so it is excluded from the unit step above; it needs
+      # the migrated postgres service (DATABASE_URL). Guards the "silent break"
+      # class (inert rule / failed INSERT) that pure-logic tests cannot see.
+      - name: Synthetic injection E2E (integration)
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://edr:testpassword@localhost:5432/edrplatform_test
+          NATS_URL: nats://localhost:4222
+        run: |
+          go test -tags integration -race -timeout 120s \
+            ./internal/detection/...
+
+      - name: Check coverage threshold (35%)
+        working-directory: server
+        # 公開版のカバレッジゲート。
+        # 商用版のゲート (45%) は、全ハンドラを登録するルータテストを含めて
+        # 測った値で、そのテストは公開版に含まれないため到達できない。
+        # ここでは「大きな後退だけを捕まえる床」を置いている。
+        # 2026-08-12: 実測 35.9%（ci.yml と coverage.yml の独立した 2 経路で一致）。
+        # 本流と同じ流儀で実測の約 1pp 下に置く: 34% → 35% にラチェット。
+        # 上げるときは、直近のグリーン実行の `Total coverage` を見てから。
+        # 段階: 15% → 34% → 35%。
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out \
+            | grep '^total:' | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${COVERAGE}%"
+          # Use awk for float comparison (bash cannot compare floats natively)
+          if awk "BEGIN { exit !($COVERAGE < 35) }"; then
+            echo "ERROR: Coverage ${COVERAGE}% is below the 35% threshold."
+            exit 1
+          fi
+          echo "Coverage check passed: ${COVERAGE}% >= 35%"
+
+      - name: Generate HTML coverage report
+        working-directory: server
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      # ── ここから下は旧 coverage.yml から移設した「報告」部分 ────────
+      #
+      # 以前は coverage.yml が別ワークフローとして postgres と nats を立て、
+      # migration を流し、同じ go test -race をもう一度走らせてから、この
+      # 表とバッジと PR コメントを作っていた。実測 5分24秒で、push と
+      # pull_request の両方で発火し、しかも needs: changes を持たないので
+      # frontend だけの変更でもサーバテストが丸ごと走っていた。
+      # Codecov へのアップロードも二重だった。
+      #
+      # 成果物はどれも coverage.out の後処理でしかない。既にこのジョブが
+      # coverage.out を持っているので、ここでやれば追加コストは数秒で済む。
+      - name: Generate per-package coverage table
+        id: coverage_table
+        working-directory: server
+        run: |
+          go tool cover -func=coverage.out > coverage_func.txt
+          cat coverage_func.txt
+
+          TOTAL_LINE=$(grep '^total:' coverage_func.txt)
+          COVERAGE_PCT=$(echo "$TOTAL_LINE" | awk '{print $3}' | tr -d '%')
+          echo "coverage_pct=${COVERAGE_PCT}" >> "$GITHUB_OUTPUT"
+          echo "total_line=${TOTAL_LINE}" >> "$GITHUB_OUTPUT"
+
+          # ゲート値はこのジョブの「Check coverage threshold」ステップ名から
+          # 読む。数値を二重に書かないための仕掛けで、coverage.yml が別
+          # ワークフローだった頃からのもの。当時は独自に "40%" を持っていて、
+          # 実ゲート 35% を通っている PR に「❌ Fail」と出し続けていた。
+          #
+          # server-test のブロックに限定して探すのは、agent-test にも同名の
+          # ステップが 30% 版で存在し、素朴な grep ではジョブの並び次第で
+          # 静かに別の数字を拾うため。同居した今も同じ。
+          #
+          # ここから下のコメントで、探索対象と同じ「ステップ名＋括弧つきの
+          # 百分率」という綴りを書かないこと。awk がこのブロックを丸ごと
+          # 渡す以上、コメント中のリテラルも grep にマッチしてしまい、
+          # head -1 の順序次第で誤った値を拾う。まさにこの仕掛けが防ごうと
+          # している事故を、説明文で再現することになる。
+          GATE=$(awk '/^  server-test:/{f=1}
+                      f && /^  [a-z][a-z0-9-]*:[[:space:]]*$/ && !/^  server-test:/{f=0}
+                      f' ../.github/workflows/ci.yml \
+            | grep -oE 'Check coverage threshold \(([0-9]+)%\)' | grep -oE '[0-9]+' | head -1)
+          if [ -z "$GATE" ]; then
+            echo "::warning::ci.yml からカバレッジのゲート値を読めませんでした。合否を出さずに報告します。"
+          fi
+          echo "gate_pct=${GATE}" >> "$GITHUB_OUTPUT"
+
+      # shields.io 互換のバッジ JSON。現状これを参照している場所は無く
+      # （README のバッジは静的な shields.io のもの）、artifact に入るだけ。
+      - name: Generate coverage badge JSON
+        id: badge
+        working-directory: server
+        run: |
+          PCT="${{ steps.coverage_table.outputs.coverage_pct }}"
+          echo "Coverage: ${PCT}%"
+
+          if awk "BEGIN { exit !($PCT >= 80) }"; then
+            COLOR="brightgreen"
+          elif awk "BEGIN { exit !($PCT >= 60) }"; then
+            COLOR="green"
+          elif awk "BEGIN { exit !($PCT >= 40) }"; then
+            COLOR="yellow"
+          else
+            COLOR="red"
+          fi
+
+          mkdir -p ../badges
+          cat > ../badges/coverage.json << EOF
+          {
+            "schemaVersion": 1,
+            "label": "coverage",
+            "message": "${PCT}%",
+            "color": "${COLOR}"
+          }
+          EOF
+          echo "badge_color=${COLOR}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: server-coverage
+          path: |
+            server/coverage.out
+            server/coverage.html
+            server/coverage_func.txt
+            badges/coverage.json
+          retention-days: 14
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        continue-on-error: true   # Non-blocking if token not configured
+        with:
+          files: server/coverage.out
+          flags: server
+          name: server-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Post coverage comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pct    = '${{ steps.coverage_table.outputs.coverage_pct }}';
+            const gate   = '${{ steps.coverage_table.outputs.gate_pct }}';
+            const color  = '${{ steps.badge.outputs.badge_color }}';
+            const sha    = context.payload.pull_request.head.sha.slice(0, 7);
+
+            const colorEmoji = {
+              brightgreen: '🟢',
+              green:       '🟢',
+              yellow:      '🟡',
+              red:         '🔴',
+            }[color] || '⚪';
+
+            // ゲート値は同じジョブの「Check coverage threshold」から読んで
+            // いる。読めなかったときは合否を出さない — 通っている PR に
+            // 誤った「❌ Fail」を出すと、緑のビルドが壊れて見える。
+            const passes = gate !== '' && parseFloat(pct) >= parseFloat(gate);
+
+            const rows = [
+              `| **Total coverage** | \`${pct}%\` |`,
+            ];
+            if (gate !== '') {
+              rows.push(`| **Gate** | \`${gate}%\` |`);
+              rows.push(`| **Status** | ${passes ? '✅ Pass' : '❌ Fail'} |`);
+            }
+
+            const body = [
+              `## ${colorEmoji} Coverage Report — \`${sha}\``,
+              '',
+              `| Metric | Value |`,
+              `|--------|-------|`,
+              ...rows,
+              '',
+              '> Full HTML report is available as a workflow artifact.',
+              '> The build-blocking gate is the `Check coverage threshold`',
+              '> step in this same job.',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const existing = comments.find(
+              c => c.user.type === 'Bot' && c.body.includes('Coverage Report')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner:      context.repo.owner,
+                repo:       context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner:      context.repo.owner,
+                repo:       context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+            }
+
+      - name: Build all services
+        working-directory: server
+        run: |
+          go build ./cmd/api/...
+          go build ./cmd/ingestion/...
+          go build ./cmd/detection/...
+
+  # ── Detection rule validation ────────────────────────────────
+  # rules/ (Sigma YAML under rules/sigma/**, YARA under rules/yara/**) had no
+  # CI validation at all — a malformed rule would just silently fail to load
+  # in production with no build-time signal. This job reuses the server's
+  # real Sigma parser/compiler (server/internal/detection.SigmaEvaluator,
+  # the same code path used to load rules at runtime) and the real `yara`
+  # CLI (reference implementation) to catch syntax errors before they ship.
+  # See server/cmd/validate-rules for the validator and why YARA validation
+  # shells out to the `yara` CLI rather than reusing the agent's hand-rolled
+  # parser (agent/internal/scanner is an `internal` package in a different
+  # module tree and cannot be imported from server/cmd).
+  rules-validate:
+    timeout-minutes: 15
+    name: Detection Rule Validation (Sigma + YARA)
+    needs: changes
+    if: needs.changes.outputs.rules == 'true' || needs.changes.outputs.all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        timeout-minutes: 10
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Install yara CLI
+        timeout-minutes: 10
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq yara
+
+      - name: Validate rules/sigma and rules/yara
+        working-directory: server
+        run: go run ./cmd/validate-rules -dir ../rules
+
+  # ── Go: agent ────────────────────────────────────────────────
+  agent-build:
+    timeout-minutes: 20
+    name: Agent Build (Go cross-compile)
+    needs: changes
+    if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            suffix: .exe
+            tags: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        timeout-minutes: 10
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      # NetworkMonitor/FilelessMonitor bpf2go bindings are committed (like
+      # ProcessMonitor's), so `-tags ebpf` builds anywhere without clang — which is
+      # what lets server/Dockerfile ship the eBPF agent. Here we regenerate them
+      # anyway and diff, so a change to the .bpf.c sources cannot silently leave
+      # the committed bindings (and therefore the shipped agent) behind.
+      # Same recipe as agent-ebpf.yml's prevention/tamper generation step, but
+      # under plain `-tags ebpf`: both are report-only tracepoint/kprobe monitors
+      # with no LSM/enforcement hooks, so neither belongs behind the "prevention"
+      # tag. One bpftool build serves both.
+      - name: Generate report-only eBPF bindings (Linux only)
+        timeout-minutes: 10
+        if: matrix.goos == 'linux'
+        working-directory: agent
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libbpf-dev libelf-dev zlib1g-dev pkg-config gcc make git
+          test -r /sys/kernel/btf/vmlinux || { echo "runner kernel has no BTF (/sys/kernel/btf/vmlinux)"; exit 1; }
+          git clone --depth 1 --recurse-submodules https://github.com/libbpf/bpftool.git /tmp/bpftool
+          make -C /tmp/bpftool/src
+          sudo /tmp/bpftool/src/bpftool btf dump file /sys/kernel/btf/vmlinux format c > ebpf/vmlinux.h
+          wc -l ebpf/vmlinux.h
+          # 生成対象は agent/Makefile の EBPF_BINDINGS が唯一の一覧。ここに
+          # bpf2go コマンドを書き写していたせいで、ProcessMonitor と
+          # LibraryMonitor がどちらの一覧にも入らないまま残っていた。
+          make generate-ebpf
+          ls -1 internal/platform/linux/*_bpfe[lb].o
+
+      # 生成物のドリフト検査。ここが落ちたら .bpf.c を変えたのにバインディングを
+      # 再生成してコミットしていない、という意味。
+      # 直し方: clang と BTF のあるホスト（または Docker:
+      # docs/Linuxカーネル防御検証ランブック.md）で `make generate-ebpf` を流し、
+      # 変わった .go と .o の両方を commit する。
+      - name: Check committed eBPF bindings are up to date (Linux only)
+        if: matrix.goos == 'linux'
+        working-directory: agent
+        run: |
+          # 対象はワイルドカード。個別に列挙すると EBPF_BINDINGS に足したときに
+          # ここへの追加を忘れ、「生成はされるが検査されない」穴がまた空く。
+          if ! git diff --exit-code -- \
+              'internal/platform/linux/*_bpfel.go' \
+              'internal/platform/linux/*_bpfeb.go'; then
+            echo "::error::committed bpf2go bindings are stale — run 'make generate-ebpf' and commit the result" >&2
+            exit 1
+          fi
+          # .go 側だけでは足りない。bpf2go の .go は構造体定義と go:embed しか持たず、
+          # C の関数本体をいくら書き換えても変化しない。実際 PR #778 は
+          # file_monitor.bpf.c の修正を入れながら再生成した .o を入れ忘れ、この検査を
+          # 素通りした（kprobe/vfs_unlink が 0x148 のまま = basename しか送らない旧版）。
+          # CI は上のステップで再生成してからビルドするので CI 産バイナリは正しいが、
+          # server/Dockerfile の agent-builder は再生成しない。つまり
+          # 「CI は緑、配布バイナリだけ修正が入っていない」が成立してしまう。
+          #
+          # .o 全体の byte 比較はできない（BTF 由来のデバッグ情報がランナーごとに変わる）
+          # ので、C ソースだけで決まるプログラムセクションの大きさを比べる。
+          # 対象は .go 側と同じくワイルドカード（列挙しない）。
+          secs() { readelf -SW "$1" | awk '/PROGBITS/ && $2 ~ /\// {print $2, $6}'; }
+          stale=0
+          checked=0
+          for f in internal/platform/linux/*_bpfel.o internal/platform/linux/*_bpfeb.o; do
+            [ -f "$f" ] || continue
+            git show "HEAD:agent/$f" > /tmp/committed.o 2>/dev/null || continue
+            checked=$((checked + 1))
+            if ! diff -u <(secs /tmp/committed.o) <(secs "$f") > /tmp/secdiff.txt; then
+              echo "::error::$f のプログラムセクションが .bpf.c と一致しません（'make generate-ebpf' で再生成して commit してください）" >&2
+              cat /tmp/secdiff.txt >&2
+              stale=1
+            fi
+          done
+          echo "checked $checked committed .o files"
+          # 1件も比較できていなければ、検査が空振りしている（グロブ不一致など）。
+          # 静かに 0 件で通ると「検査がある」という誤った安心だけが残る。
+          [ "$checked" -gt 0 ] || { echo "::error::no committed .o was compared — the check is not running" >&2; exit 1; }
+          [ "$stale" = 0 ] || exit 1
+
+      - name: Build agent
+        working-directory: agent
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: go build -tags "${{ matrix.tags }}" -ldflags="-s -w" -o edr-agent-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} ./cmd/agent/...
+
+      - name: Build watchdog
+        working-directory: agent
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: go build -ldflags="-s -w" -o edr-watchdog-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }} ./cmd/watchdog/...
+
+      - name: Upload agent binaries
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: agent-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: agent/edr-*
+
+  # ── Agent unit tests ─────────────────────────────────────────
+  # Runs the agent Go test suite natively on linux/amd64. The agent-build job
+  # above only cross-compiles the binaries (windows/linux/darwin) and never
+  # executes their test binaries, so the agent's ~8k lines of tests provided
+  # zero CI protection until this job. Uses -tags ebpf to match the default
+  # Linux agent build (the ebpf collector is pure Go via embedded bpf2go
+  # objects, so it compiles without CGO; -race enables cgo for the detector).
+  agent-test:
+    timeout-minutes: 45
+    name: Agent Tests (Go)
+    needs: changes
+    if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        timeout-minutes: 10
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      # gofmt ゲート。server 側と同じ理由 (未整形が 337 件まで積み上がっていた)。
+      # ビルドを必要としないので eBPF バインディング生成より前に置く — 整形漏れは
+      # バインディング生成 (数分) を待たずに落ちたほうが速い。
+      - name: gofmt
+        working-directory: agent
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "以下のファイルが gofmt 未整形です:"
+            gofmt -l .
+            echo "--- 差分 ---"
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: staticcheck
+        timeout-minutes: 10
+        working-directory: agent
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          GOOS=windows staticcheck ./...
+          staticcheck -tags ebpf ./...
+
+      # Free 版は Windows 専用。ubuntu ランナーではテストを実行できないので、
+      # ここではクロスビルドが通ることだけを検査する。
+      - name: Cross-build (windows)
+        working-directory: agent
+        run: GOOS=windows GOARCH=amd64 go build ./...
+
+      - name: Cross-platform vet (windows/darwin)
+        working-directory: agent
+        run: |
+          GOOS=windows GOARCH=amd64 go vet ./...
+          # Windows kernel-driver prevention variant. Its four driver-facing files
+          # (prevention_driver.go / cred_driver_windows.go / tamper_driver_windows.go
+          # / pathalias_windows.go) and their tests are behind `windows && prevention`
+          # and were type-checked by nothing at all: the plain `go vet` above drops
+          # them, and no Windows runner exists. When this gate was first added it
+          # immediately found that pathalias_windows_test.go had never compiled
+          # (a `contains` helper colliding with auth_parse_test.go's).
+          # macOS EndpointSecurity (ESF) build variant + its prevention combo.
+          #
+          # Over ./... , not just ./internal/platform/darwin/... . Narrowing it to
+          # the ESF collector is a cgo file, CGO_ENABLED=0 here drops it, and the
+          # polling fallback was excluded by `!esf` — so both implementations
+          # vanished and NewDarwinProcessCollector was undefined. Nothing in the
+          # darwin package references it, so a package-scoped vet passed; the
+          # error only appears at the call site in cmd/agent.
+          #
+          # This is a compile gate for the cgo-less shape of the build. The real
+          # ESF compile (CGO_ENABLED=1, EndpointSecurity.h) needs a macOS host
+          # and lives in agent-macos-esf.yml.
+
+  # ── Server dependency vulnerability scan (govulncheck) ────────
+  # 独立ジョブであることが重要。以前は server-test ジョブの中間ステップだったため、
+  # 依存に脆弱性が1件出るだけで後続の Unit tests / Synthetic injection E2E /
+  # Build all services が丸ごと skipped になり、テストゲートが静かに消えていた
+  # (GO-2026-6061 が main で赤かった数日間、実際にサーバのユニットテストは
+  #  一度も実行されていない)。脆弱性は脆弱性として、テストはテストとして
+  # それぞれ独立に赤くなるべきなので、agent-vulncheck と同じ形に揃えた。
+  server-vulncheck:
+    timeout-minutes: 15
+    name: Server Vulnerability Check (govulncheck)
+    needs: changes
+    if: needs.changes.outputs.server == 'true' || needs.changes.outputs.all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        timeout-minutes: 10
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      # govulncheck もバージョンを固定する。ただし固定の意味は staticcheck とは
+      # 違う。staticcheck の @latest は新しい検査が増えるだけでコードが赤くなるが、
+      # govulncheck が報告する脆弱性は「解析エンジンの版」ではなく「実行時に
+      # 取得する脆弱性データベース」に由来する。DB は毎回 vuln.go.dev から
+      # 取り直されるので、版を固定しても新規 CVE の検知力は一切落ちない。
+      #
+      # 固定して防げるのは解析エンジン側の事故だけ:
+      #   - 新リリースが go.mod より新しい Go ツールチェインを要求して install が失敗する
+      #   - 出力形式や終了コードが変わる
+      #   - 到達可能性解析のリグレッションで既知の脆弱性を見落とす
+      # いずれもコード無変更で CI の色が変わる事象なので、pin する価値はある。
+      #
+      # 注意: Dependabot の github-actions エコシステムは `uses:` しか見ないため、
+      # run: の中の go install ...@vX.Y.Z は自動更新されない (staticcheck の
+      # v0.7.0 も同様)。上げるのは手動。放置すると解析エンジンだけが古びる。
+      - name: Install govulncheck
+        timeout-minutes: 10
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+
+      - name: govulncheck
+        working-directory: server
+        run: govulncheck ./...
+
+  # ── Agent dependency vulnerability scan (govulncheck) ─────────
+  # Runs once on linux/amd64 (independent of the cross-compile matrix above).
+  # Mirrors server-vulncheck so both Go modules are covered by Go's official
+  # vuln database (replaces the removed nancy job in security.yml, which
+  # suffered OSS Index 401s).
+  agent-vulncheck:
+    timeout-minutes: 15
+    name: Agent Vulnerability Check (govulncheck)
+    needs: changes
+    if: needs.changes.outputs.agent == 'true' || needs.changes.outputs.all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        timeout-minutes: 10
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      # server-vulncheck と同じ版に揃える。揃えないと、同じ脆弱性が
+      # 片方のモジュールでだけ報告される状態が起こり得る (staticcheck を
+      # agent 側にも入れた時と同じ理由)。固定の意味は server-vulncheck の
+      # コメントを参照。
+      - name: Install govulncheck
+        timeout-minutes: 10
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+
+      - name: govulncheck
+        working-directory: agent
+        run: govulncheck ./...
+
+  # ── Frontend ──────────────────────────────────────────────────
+  frontend-build:
+    timeout-minutes: 40
+    name: Frontend Build (Next.js)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.all == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install --prefer-offline
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      # Vitest unit/component tests (frontend/tests/**). Previously these were
+      # never run in CI — only lint, typecheck, build, and the separate
+      # Playwright e2e job ran — so component and lib-level regressions could
+      # merge undetected. `npm test` maps to `vitest run` (see package.json).
+      # Now that the Playwright e2e job runs nightly (integration.yml) rather than
+      # per-push, this is the frontend's only per-push behavioral safety net.
+      - name: Unit tests (Vitest)
+        working-directory: frontend
+        run: npm test
+
+      - name: Build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: /api/v1
+        run: npm run build
+
+      - name: Upload build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: frontend-build
+          path: frontend/.next/standalone
+          retention-days: 1
+
+  scripts-test:
+    timeout-minutes: 20
+    name: Mutation Harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+
+      # 変異ハーネスは、検査そのものが落ちることを確かめるための道具です。
+      # 戻し損ねると、壊れた検査が「違反0件」を報告し続けます。SIGKILL で
+      # 戻せることまで、ここで確かめます。
+      - name: Harness restores itself after being killed
+        run: python3 scripts/mutate_test.py
+
+      # 各ゲートの仕様書 (scripts/mutations/) が、まだ今の木を指していること。
+      # 変異そのものは走らせません（Go のテストを変異の数だけ回すので数分
+      # かかります）。当たらなくなった仕様書は、走らせても全 SKIP で緑を
+      # 返すだけの文書になります。
+      - name: Mutation specs still match the tree
+        run: python3 scripts/run_mutations.py --check
+
+      # 走らなかったテストを数える道具そのもの。数え損ねても出力は同じ形を
+      # しているので（「飛んだ 0 本」は「本当に0本」とも読めます）、
+      # 判定を単体で留めます。Go も DB も要りません。
+      - name: Skip accounting counts what it says it counts
+        run: python3 scripts/skip_report_test.py
+
+      # Alertmanager の設定は Go から読まれないので、`go test ./...` は
+      # 1行も触りません。**フィールド名が v0.27 のスキーマに合っているかは、
+      # 起動して初めて分かります。** docker は要らず、秘密はダミーで、
+      # 宛先はローカルの受け口に差し替わるので外に出る通信は起きません
+      # （Alertmanager のバイナリの取得だけネットワークが要ります）。
+      #
+      # **終了コード 2（確かめられなかった）でも落とします。** CI には
+      # ネットワークがあるので、取ってこられないこと自体が異常です。
+      # 手元では `server/scripts/run_tests.sh` が 2 を別に数えます。
+
+      # ラチェットの固定値を実測に合わせて**下げる**道具そのもの。
+      # **壊れたまま動くと、劣化を記録して緑にするだけの装置になります。**
+      # 上げ方向を埋めないこと、落ちているのに 0 を返さないことを留めます
+      # （作っている途中で実際に 0 を返しました）。
+      - name: The ratchet recalibrator only lowers
+        timeout-minutes: 10
+        run: python3 scripts/recalibrate_ratchets_test.py
+
+      - name: Alertmanager config loads, delivers, and inhibits
+        run: bash scripts/check-alertmanager.sh
+
+      # 上の道具そのもの。**確かめる道具が壊れていることが、いちばん高く
+      # つきます** —— 以後どの実行も「問題なし」と報告し、それは正しく
+      # 見えます。終了コードの約束（0/1/2）を単体で留めます。
+      - name: The Alertmanager check reports what it says it reports
+        run: python3 scripts/check_alertmanager_test.py
+
+      - name: Install PyYAML
+        timeout-minutes: 10
+        run: pip install pyyaml
+
+      # 同期の取りこぼしを見張る側そのもの。**これが黙って通るようになると、
+      # 以後どの同期も「配布物はすべて残っています」と報告し、それは正しく
+      # 見えます。** 汚した木を渡して、必ず落ちることを留めます。
+      #
+      # 判定を当てるのは sync-guard.yml のほうです（`pull_request_target` で
+      # **base 側の定義**で走るので、PR がそれを消しても止まりません）。ここは
+      # その道具の単体テストだけ —— この job は PR の木で走るので、消されたら
+      # 一緒に消えます。**yaml を読むので PyYAML の後ろに置くこと。**
+      - name: The sync guard fails on a tree that dropped something
+        timeout-minutes: 10
+        run: python3 scripts/sync_guard_test.py
+
+      # 本流へ渡す表を作り、木へ戻す道具そのもの。**壊れたまま動くと、
+      # `--restore` は「入れました」と言って何も入れず、`--check` は
+      # 違いを見落として緑を返します** —— どちらも、この表が防ごうと
+      # している事故そのものです。改名された step を静かに飛ばさない
+      # ことを、重点的に留めます。
+      - name: The handover table can rebuild the tree it describes
+        run: python3 scripts/handover_timeouts_test.py
+
+      # 生成器が 1 回だけ呼ぶ入口の順番。**較正 → 追随の順が逆でも、
+      # 3 本とも 0 を返します** —— 壊れるのは次の同期で、そのとき変異
+      # 仕様書は全 SKIP で緑を返しています。順番を留めるのはここだけです。
+      - name: The post-snapshot hook runs its steps in the required order
+        run: python3 scripts/after_snapshot_test.py
+
+      # 出しているアラートルールが、本当に読み込まれる場所にあること。
+      # prometheus_alerts.yml は19本を持ったまま、rule_files から外れて
+      # いました。ファイルがあることと、読まれていることは別です。
+      - name: Alert rules are actually loaded
+        run: |
+          python3 scripts/check_prometheus_rules.py
+          python3 scripts/check_prometheus_rules_test.py
+
+      # 誰かが変異を残したまま commit していないこと。
+      - name: No mutation left applied
+        run: |
+          if [ -f .mutate-journal.json ]; then
+            echo "変異が残ったまま commit されています:"
+            cat .mutate-journal.json
+            exit 1
+          fi
+

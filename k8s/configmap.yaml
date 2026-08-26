@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edr-platform-config
+  namespace: edr-platform
+data:
+  NATS_URL: "nats://nats:4222"
+  API_PORT: "8080"
+  INGEST_PORT: "9090"
+  LOG_LEVEL: "info"
+  DETECTION_CONSUMER_GROUP: "detect-group"

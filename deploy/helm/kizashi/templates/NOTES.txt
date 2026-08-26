@@ -1,0 +1,100 @@
+============================================================
+  Kizashi - Deployment Summary
+============================================================
+
+Release:   {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+Chart:     {{ .Chart.Name }}-{{ .Chart.Version }}
+App:       v{{ .Chart.AppVersion }}
+
+------------------------------------------------------------
+  Access URLs
+------------------------------------------------------------
+
+{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.tls.enabled }}
+  Dashboard:  https://{{ .Values.ingress.host }}/
+  API:        https://{{ .Values.ingress.host }}/api/
+{{- else }}
+  Dashboard:  http://{{ .Values.ingress.host }}/
+  API:        http://{{ .Values.ingress.host }}/api/
+{{- end }}
+{{- else }}
+  Ingress is disabled. Use port-forwarding to access services:
+
+  kubectl port-forward -n {{ .Release.Namespace }} \
+    svc/{{ include "kizashi.fullname" . }}-frontend {{ .Values.frontend.ports.http }}:{{ .Values.frontend.service.httpPort }}
+
+  kubectl port-forward -n {{ .Release.Namespace }} \
+    svc/{{ include "kizashi.fullname" . }}-api {{ .Values.api.ports.http }}:{{ .Values.api.service.httpPort }}
+
+  Then open: http://localhost:{{ .Values.frontend.ports.http }}
+{{- end }}
+
+------------------------------------------------------------
+  Component Status
+------------------------------------------------------------
+
+  Check rollout status:
+
+  kubectl rollout status deployment/{{ include "kizashi.fullname" . }}-api     -n {{ .Release.Namespace }}
+  kubectl rollout status deployment/{{ include "kizashi.fullname" . }}-ingestion -n {{ .Release.Namespace }}
+  kubectl rollout status deployment/{{ include "kizashi.fullname" . }}-detection  -n {{ .Release.Namespace }}
+  kubectl rollout status deployment/{{ include "kizashi.fullname" . }}-frontend   -n {{ .Release.Namespace }}
+
+  List all pods:
+
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+------------------------------------------------------------
+  Credentials
+------------------------------------------------------------
+
+{{- if .Values.createSecrets }}
+  A Secret named "{{ include "kizashi.secretName" . }}" was created in
+  namespace {{ .Release.Namespace }} containing:
+    - postgresql-password
+    - jwt-secret
+
+  IMPORTANT: Save these credentials now. Retrieve them with:
+
+  kubectl get secret {{ include "kizashi.secretName" . }} \
+    -n {{ .Release.Namespace }} \
+    -o jsonpath='{.data.postgresql-password}' | base64 -d
+
+{{- else }}
+  Using external secrets:
+    DB password:  {{ .Values.global.postgresql.existingSecret }} / {{ .Values.global.postgresql.existingSecretKey }}
+    JWT secret:   {{ .Values.global.jwt.existingSecret }} / {{ .Values.global.jwt.existingSecretKey }}
+{{- end }}
+
+------------------------------------------------------------
+  Autoscaling
+------------------------------------------------------------
+
+{{- $hpaEnabled := false }}
+{{- range $c := list "api" "ingestion" "detection" "frontend" }}
+{{- if (index $.Values $c).autoscaling.enabled }}
+{{- $hpaEnabled = true }}
+  HPA enabled for: {{ $c }} ({{ (index $.Values $c).autoscaling.minReplicas }}-{{ (index $.Values $c).autoscaling.maxReplicas }} replicas)
+{{- end }}
+{{- end }}
+{{- if not $hpaEnabled }}
+  Autoscaling is disabled for all components.
+  Enable per component with: --set api.autoscaling.enabled=true
+{{- end }}
+
+------------------------------------------------------------
+  Monitoring
+------------------------------------------------------------
+
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+  Prometheus ServiceMonitors created in namespace: {{ .Values.monitoring.serviceMonitor.namespace }}
+{{- else }}
+  Prometheus ServiceMonitor is disabled.
+  Enable with: --set monitoring.serviceMonitor.enabled=true
+{{- end }}
+
+============================================================
+  Documentation: https://github.com/your-org/kizashi-edr
+============================================================

@@ -1,0 +1,290 @@
+groups:
+  # ──────────────────────────────────────────────
+  # EDR API サービス
+  # ──────────────────────────────────────────────
+  - name: edr_api
+    rules:
+      - alert: EDRApiDown
+        expr: up{job="edr-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "EDR API が停止しています"
+          description: "{{ $labels.instance }} への接続が 1 分以上失敗しています。"
+
+      # EDRApiHighErrorRate はここにありました。rules/edr-alerts.yml の
+      # EDRHighAPIErrorRate と、閾値 (5xx > 5%)・for (3m) が同じで、
+      # severity だけが warning と critical に割れていました。
+      #
+      # 名前が違うので Prometheus は2本として評価します。通知を繋いだ今、
+      # 同じ事象が PagerDuty(critical) と Slack(warning) の両方に、
+      # **別の重大度の別の事案として**届くことになります。
+      #
+      # critical 側に寄せました。API の 5xx が3分続くのは呼び出しを要する
+      # 状態で、warning に埋もれる方が高くつきます。
+      #
+      # 残した式は sum() でまとめてから割り、分母を clamp_min しています。
+      # 生の rate 同士の割り算だと系列ごとの比になり、トラフィックが
+      # 途切れた瞬間に 0/0 で NaN になります。
+
+      # EDRApiHighLatency はここにありました。rules/edr-alerts.yml の
+      # EDRAPIHighLatency と、閾値 (p95 > 2s)・for (5m)・severity (warning) が
+      # 同じで、名前は "Api"/"API" の綴りだけが違いました。**Prometheus は
+      # 別のアラートとして扱うので、上書きは起きず、両方が発火します。**
+      #
+      # 残したのは rules/ 側です。あちらは histogram_quantile に
+      # `sum by (le)` を掛けています。掛けないと、instance や method ごとの
+      # 系列それぞれで p95 を出すので、1台だけ遅いときに全体の p95 として
+      # 報告されます。同じ閾値でも、測っているものが違います。
+      #
+      # 完全一致の名前しか見ていなかったので、重複の検査はこれを
+      # 「重複なし」と報告していました。scripts/check_prometheus_rules.py が
+      # 大文字小文字を落とした名前でも見るようになっています。
+
+      - alert: EDRApiHighRequestRate
+        expr: rate(http_requests_total{job="edr-api"}[1m]) > 500
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "EDR API へのリクエスト数が急増しています"
+          description: "リクエスト数が {{ $value | humanize }}/s に達しています。DDoS の可能性があります。"
+
+  # ──────────────────────────────────────────────
+  # PostgreSQL / TimescaleDB
+  # ──────────────────────────────────────────────
+  - name: edr_database
+    rules:
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL が停止しています"
+          description: "データベースへの接続が 30 秒以上失敗しています。即時対応が必要です。"
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#postgresdown"
+
+      - alert: PostgresHighConnections
+        expr: |
+          pg_stat_database_numbackends{datname="edrplatform"}
+          / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL 接続数が上限に近づいています"
+          description: "接続使用率が {{ $value | humanizePercentage }} です (閾値: 80%)。"
+
+      - alert: PostgresDiskUsageHigh
+        expr: |
+          (1 - (node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql"}
+                / node_filesystem_size_bytes{mountpoint="/var/lib/postgresql"})) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL ディスク使用量が高くなっています"
+          description: "ディスク使用率が {{ $value | humanizePercentage }} です (閾値: 80%)。"
+
+  # ──────────────────────────────────────────────
+  # NATS メッセージング
+  # ──────────────────────────────────────────────
+  - name: edr_nats
+    rules:
+      - alert: NATSDown
+        expr: up{job="nats"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NATS が停止しています"
+          description: "NATS メッセージングサービスが停止しています。検知エンジンが機能しません。"
+
+      - alert: NATSSlowConsumers
+        expr: nats_slow_consumer_count > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NATS のスロウコンシューマーが増加しています"
+          description: "スロウコンシューマー数: {{ $value }}。処理が追いついていません。"
+
+  # ──────────────────────────────────────────────
+  # ホストシステムリソース
+  # ──────────────────────────────────────────────
+  - name: edr_host
+    rules:
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by (instance)
+            (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率が高くなっています"
+          description: "CPU 使用率: {{ $value }}% (閾値: 85%)。"
+
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "メモリ使用率が高くなっています"
+          description: "メモリ使用率: {{ $value | humanizePercentage }} (閾値: 90%)。"
+
+      - alert: DiskSpaceLow
+        expr: |
+          (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"}
+                / node_filesystem_size_bytes{fstype!="tmpfs"})) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ディスク空き容量が少なくなっています"
+          description: "{{ $labels.mountpoint }} の使用率: {{ $value | humanizePercentage }} (閾値: 85%)。"
+
+  # ──────────────────────────────────────────────
+  # セキュリティ関連
+  # ──────────────────────────────────────────────
+  - name: edr_security
+    rules:
+      # edr_alerts_created_total は metrics.go の手書き Fprintf ブロックが
+      # 出しています (promauto ではなく atomic の AlertsCreated)。
+      #
+      # このルールを一度「存在しないメトリクスを参照している」として
+      # 書き換えました。私が新しく書いた検査が promauto の宣言しか読んで
+      # おらず、手書きの行を見ていなかったためです。既にある Go 側の契約
+      # 検査は正しく通していました。**狭い走査が出した「問題」を、
+      # もう一方の判定と突き合わせずに直しました。** このキャンペーンが
+      # 扱っている失敗そのものです。元に戻してあります。
+      - alert: HighAlertVolume
+        expr: |
+          increase(edr_alerts_created_total[1h]) > 1000
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "アラート件数が急増しています"
+          description: "過去 1 時間で {{ $value }} 件のアラートが発生しました。インシデントの可能性があります。"
+
+      # edr_alerts_open_total は存在しないメトリクスだった (誰も emit していない)。
+      # 実在する edr_open_alerts_critical に是正。存在しないメトリクスを参照する
+      # ルールは永久に沈黙し、健全な状態と外形が同じになる。
+      - alert: CriticalAlertsUnacknowledged
+        expr: |
+          edr_open_alerts_critical > 20
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "未対応のクリティカルアラートが多数あります"
+          description: "未対応のクリティカルアラート: {{ $value }} 件。即時対応が必要です。"
+
+      # edr_agents_offline_total も同様に存在しなかった。'inactive' (退役ホスト) は
+      # 意図的に除外している — P5-10 で inactive を offline 扱いした読み出し側が
+      # 退役機のアラートを無限に出した。
+      - alert: AgentOffline
+        expr: |
+          edr_agents_offline > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "オフラインのエージェントがあります"
+          description: "{{ $value }} 台のエージェントが 15 分以上オフラインです。"
+
+  # ──────────────────────────────────────────────
+  # 検知パイプライン (server-detect)
+  # ──────────────────────────────────────────────
+  #
+  # 検知が「出ていない」状態と、攻撃が「無かった」状態は外形が同じである。
+  # 2026-07-26 の Windows 実機計測では窓内アラート6件がすべて server-api の
+  # builtin 由来で、DBルールと状態付き検知器9種 (いずれも server-detect にしか
+  # 実体が無い) は1件も出ていなかった。当時それが「検知能力の欠落」なのか
+  # 「経路の全損」なのかを後から判定できず、切り分けに実機ログの突合を要した。
+  #
+  # 必要なメトリクスは既にあり (engine.go の monitorConsumerLag と
+  # DetectionLastEventTimestamp)、Prometheus も detection:8081 を scrape している。
+  # 欠けていたのは**それを鳴らす側**だけだった。DetectionLastEventTimestamp の
+  # doc コメントは当初から「数分を超えたらアラートせよ」と書いていたが、
+  # そのルールが存在しないままだった。
+  - name: edr_detection_pipeline
+    rules:
+      - alert: EDRDetectionDown
+        expr: up{job="edr-detection"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "検知エンジンが停止しています"
+          description: >-
+            server-detect への接続が 1 分以上失敗しています。DBルール (rules テーブル) と
+            状態付き検知器 (discovery / file_burst / auth_attack / lateral_fanout /
+            exfil_volume / killchain 等) はこのプロセスにしか存在しないため、
+            停止中はそれらの検知が全て失われます。server-api の builtin Sigma のみが
+            残るため、アラートは出続けることに注意してください。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectiondown"
+
+      # デッドマンズスイッチ。プロセスは生きていてヘルスプローブも通るのに、
+      # NATS→検知の経路だけが静かに止まっている状態を捉える。
+      #
+      # ⚠ job="edr-detection" で必ず絞ること。internal/metrics はグローバル登録なので
+      #   server-api も同名メトリクスを公開するが、更新するのは cmd/detection だけで
+      #   api 側は永久に 0 のままである。絞らないと api の系列に対して
+      #   time() - 0 ≈ 17億秒 となり、この式は常に真になる。
+      #   2026-08-05 に検証環境の Prometheus で実測:
+      #     time() - edr_detection_last_event_timestamp_seconds > 300
+      #       → 該当 1 件 {job="edr-api", instance="api:8080"} = 1785923243 秒
+      #     同式に {job="edr-detection"} を付けると → 該当 0 件
+      #   つまり絞らずにデプロイすると 5 分後から critical が鳴り続け、本物の停止が
+      #   その中に埋もれる。デッドマンズスイッチが常時発火していたら意味がない。
+      - alert: EDRDetectionPipelineStalled
+        expr: |
+          time() - edr_detection_last_event_timestamp_seconds{job="edr-detection"} > 300
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "検知パイプラインが停止しています (イベントが流れていません)"
+          description: >-
+            検知エンジンが最後にイベントを処理してから {{ $value | humanizeDuration }} 経過しています。
+            プロセスは生存しているため死活監視では検出できません。ingestion→NATS→detection の
+            どこかで停止しています。イベント送信が本当に無い時間帯かどうかを
+            edr_events_ingested_total と併せて確認してください。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectionpipelinestalled"
+
+      # ラグは「停止」の前兆であり、かつ計測を無効化する。consumer が数百万件
+      # 遅れていると、実行した TTP に対応する検知は窓の外で発火するため、
+      # 検知率計測が「未検知」と誤読される (2026-07-13 に 4M 件の実測あり)。
+      # こちらも job で絞る。api 側の系列は常に 0 なので現時点では誤発火しないが、
+      # 「0 = ラグなし」ではなく「api は更新しないので常に 0」であり、意味が違う。
+      # detection を水平分割(docker-compose.scale.yml の server-detect レプリカ)した
+      # ときも、job ラベルなら全レプリカが対象になる。
+      - alert: EDRDetectionConsumerLagging
+        expr: edr_detection_consumer_pending{job="edr-detection"} > 50000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "検知エンジンが取り込みに追いついていません"
+          description: >-
+            JetStream の未配信メッセージが {{ $value }} 件あります。この状態では検知が
+            実時間から遅れるため、検知率計測を実施しても結果は信頼できません。
+            計測前には必ずこの値が十分小さいことを確認してください。
+          runbook_url: "https://github.com/kizashi-labs/kizashi/blob/main/docs/ops/%E7%9B%A3%E8%A6%96%E3%83%A9%E3%83%B3%E3%83%96%E3%83%83%E3%82%AF.md#edrdetectionconsumerlagging"
+
+      - alert: EDRDetectionConsumerLagCritical
+        expr: edr_detection_consumer_pending{job="edr-detection"} > 1000000
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "検知エンジンのラグが危険水準です"
+          description: >-
+            JetStream の未配信メッセージが {{ $value }} 件。実質的に検知が機能していません。
+            イベントノイズの削減か consumer のスケールアウトが必要です。

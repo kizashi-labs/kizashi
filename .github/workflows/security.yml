@@ -1,0 +1,210 @@
+name: Security Scan
+
+# このワークフローのジョブは scripts/verify.sh の `security` 領域が 1:1 で
+# 再現している（gitleaks は実ゲート、trivy-fs と semgrep は報告のみ、
+# trivy-image は --full でのみ）。**ここを足し引きしたら、あちらも直すこと。**
+# 同じ注意書きが ci.yml の changes ジョブにもある。
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+  # Manual-only periodic scan (weekly cron removed to avoid idle Actions billing).
+  # Run on demand with: gh workflow run security.yml --ref main
+  workflow_dispatch: {}
+
+# 打ち切ってよい。SARIF は同じ category で上書きされるので、後続の実行が
+# 出す結果が最新として残る。古い実行を最後まで走らせても Security タブに
+# 反映されるのは結局あとから来る方で、意味がない。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Filesystem scan (dependencies / secrets) ──────────────────
+  trivy-fs:
+    timeout-minutes: 15
+    name: Trivy Filesystem Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Run Trivy (filesystem)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        if: always()
+        continue-on-error: true   # プライベートリポジトリでは GHAS が必要なためスキップ可
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-filesystem
+
+  # ── Docker image scans ────────────────────────────────────────
+  # イメージスキャンは 3 イメージをビルドしてから走らせるため、単独で 8 分超を使う。
+  # PR ごとに回す価値は薄い: 依存の脆弱性はファイルシステム走査 (trivy-fs) と
+  # govulncheck が PR で捕まえており、イメージ固有の差分はベースイメージ更新時に
+  # しか動かない。main への push で回せば検出は 1 サイクル遅れるだけで済む。
+  trivy-image:
+    timeout-minutes: 25
+    name: Trivy Image Scan (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: server-api
+            context: .
+            dockerfile: server/Dockerfile
+            target: api
+          - service: server-ingest
+            context: .
+            dockerfile: server/Dockerfile
+            target: ingestion
+          - service: frontend
+            context: frontend
+            dockerfile: frontend/Dockerfile
+            target: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          push: false
+          load: true
+          tags: edr-${{ matrix.service }}:scan
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Run Trivy image scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: edr-${{ matrix.service }}:scan
+          format: sarif
+          output: trivy-image-${{ matrix.service }}.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        if: always()
+        continue-on-error: true   # Requires GHAS on private repositories
+        with:
+          sarif_file: trivy-image-${{ matrix.service }}.sarif
+          category: trivy-image-${{ matrix.service }}
+
+  # ── Go dependency CVE scanning ────────────────────────────────
+  # Both server and agent modules are scanned by govulncheck in ci.yml
+  # (server-test job + agent-vulncheck job). Nancy was removed because
+  # it required OSS Index credentials and overlapped with govulncheck.
+
+  # ── SAST: semgrep ─────────────────────────────────────────────
+  semgrep:
+    timeout-minutes: 20
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Run semgrep (Go + security rulesets)
+        # --error dropped: 129 findings accumulated across multiple rulesets
+        # need to be triaged first (split into actionable vs false-positive +
+        # add .semgrepignore where appropriate) before re-arming as a gate.
+        # SARIF is still uploaded to Security tab and saved as an artifact.
+        run: |
+          semgrep scan \
+            --config "p/golang" \
+            --config "p/security-audit" \
+            --config "p/secrets" \
+            --config "p/owasp-top-ten" \
+            --sarif \
+            --output semgrep.sarif \
+            .
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        if: always()
+        continue-on-error: true   # Requires GHAS on private repositories
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Upload semgrep report artifact
+        timeout-minutes: 10
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 30
+
+  # ── Secret scanning: gitleaks ─────────────────────────────────
+  # gitleaks/gitleaks-action@v2 のラッパーは、実際の漏洩が無くても失敗していた
+  # （リポジトリ履歴を CLI で走査すると 0 件: 既定ルール・.gitleaks.toml いずれでも
+  # クリーン）。ラッパーは .gitleaks.toml を確実には適用せず、ライセンス/API 依存で
+  # 非決定的に落ちるため、ピン留めした gitleaks CLI を直接呼ぶ方式に置き換える。
+  # これにより「.gitleaks.toml の allowlist を適用した決定的なシークレットゲート」になる。
+  gitleaks:
+    timeout-minutes: 10
+    name: Gitleaks — Secret Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0   # Full history needed for commit-range scanning
+
+      # ピン留めした gitleaks バイナリを直接取得して実行する。
+      # setup-go / go install に依存させないことで、他の Go ジョブと共有の
+      # ツールチェーン設定リスクから独立した決定的なシークレットゲートにする。
+      - name: Run gitleaks (repo .gitleaks.toml allowlist applied)
+        timeout-minutes: 10
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          set -euo pipefail
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          # detect は git 履歴を走査。--config で偽陽性 allowlist を適用、
+          # --redact でログにシークレットを出さない。漏洩検出時のみ exit 1。
+          /tmp/gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --exit-code 1

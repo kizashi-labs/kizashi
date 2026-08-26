@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchDaemon shipped inside the macOS .pkg.
+
+  Deliberately separate from agent/deploy/darwin/com.edrplatform.agent.plist,
+  which points at /opt/edr-agent/edr-agent with a config.yaml that the agent
+  does not read (its config is TOML at /etc/edr/agent.toml). That file predates
+  the current layout; leaving it alone avoids breaking any host installed from
+  it, while the package uses the same paths as install.sh so script-installed
+  and package-installed Macs are interchangeable.
+
+  It also runs the WATCHDOG, not the agent directly — matching Linux and
+  Windows. KeepAlive on the agent itself would give macOS and the watchdog two
+  restart authorities fighting each other.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.edrplatform.agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/edr-watchdog</string>
+        <string>--agent</string>
+        <string>/usr/local/bin/edr-agent</string>
+        <string>--config</string>
+        <string>/etc/edr/agent.toml</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- launchd is the last-resort restarter; the watchdog handles the agent. -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/var/log/edr/agent.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/edr/agent-error.log</string>
+
+    <!-- root: ESF requires it, and so does reading other processes' details. -->
+    <key>UserName</key>
+    <string>root</string>
+
+    <key>ProcessType</key>
+    <string>Standard</string>
+</dict>
+</plist>

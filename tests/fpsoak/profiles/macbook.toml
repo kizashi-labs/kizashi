@@ -1,0 +1,633 @@
+# 業務用 MacBook (macOS) — フリート唯一の darwin プロファイル。
+#
+# ── なぜ足したか ──
+#
+# migration 386 (P4-12 第3波) で macOS 専用ルール 9 件を投入したが、そのあと
+# 走らせた FP ソークは新規ルールの発火 0 件を報告した。これは「誤検知が
+# 少ない」証拠ではない。**当時 tests/fpsoak/profiles/ に darwin プロファイルが
+# 1 つも無かった**ためで、macOS 専用ルールは platform ゲート
+# (rules.PlatformMatchesEvent) で全イベントから外され、評価すらされていない。
+# 緑のゲートが「未測定」を「良好」に見せていた状態である (P4-12 に記録)。
+#
+# ゲートの経路は端から端まで確かめてある:
+#
+#   os = "darwin"                       Profile.Validate は windows|linux|darwin のみ許可
+#     → Generator.Platform()            v1.Platform_PLATFORM_DARWIN
+#     → ingestion の platformString()   "darwin"
+#     → canonPlatform("darwin")         "macos"
+#     → platform 列 ARRAY['macos'] と一致 → 評価される
+#
+# "macos" と書いても canonPlatform は畳むが、Validate が通さない。ここは
+# **"darwin" でなければならない**。
+#
+# ── 何を入れて、何を入れなかったか ──
+#
+# FP ソークの前提は「このフリートが出したアラートは定義上すべて誤検知」である。
+# だから*本当に良性である挙動しか書いてはいけない*。第3波の 14 ルールのうち、
+# 実在の macOS 端末が日常的にやることだけを入れた:
+#
+#   ○ 入れた (良性として断言できる)
+#     macOS System and Owner Discovery      MDM の棚卸し (system_profiler / sw_vers / whoami)
+#     macOS Security Software Discovery     コンプライアンス確認 (csrutil status / spctl --status)
+#     macOS Launch Agent or Daemon plist    アプリ導入時のログイン項目登録
+#     macOS Shell Startup File Modification Homebrew / nvm が ~/.zprofile を書く
+#     macOS Sudoers or Passwd Modification  MDM が /etc/sudoers.d に管理者権限を配る
+#     macOS Data Exfiltration via curl/scp  成果物を社内サーバへ scp / curl -T
+#     macOS Kernel Extension Load           VPN クライアント導入時の kmutil load
+#     Exfiltration to Cloud Storage via CLI  aws s3 sync でのデプロイ
+#     Unix System Shutdown or Reboot        OS 更新後の再起動
+#     Credential Harvesting from Shell History  自分の履歴を grep する
+#     Remote Access via VNC                 情シスの遠隔支援 (下記の一本化で採用)
+#
+#   × 入れなかった (良性と断言できないので、測れないままにしておく)
+#     macOS Disable SIP or Firewall     `csrutil disable` は良性フリートの挙動ではない。
+#                                       ただし `csrutil status` は入れてあるので、
+#                                       **status を disable と誤認しないか**は測れる
+#     macOS Reverse Shell               `bash -i` / `-e /bin/sh` に相当する正規操作を
+#                                       macOS 端末で挙げられなかった。無理に書けば
+#                                       「良性である」という嘘をゲートに焼き付ける
+#     Exfiltration to Paste Site        transfer.sh / pastebin API への業務利用を
+#                                       良性と宣言する判断は保留
+#
+# 入れなかった 2 件が未測定のまま残ることは承知の上である。**測れていないものを
+# 測れたことにしない**のがこのプロファイルを足した動機そのものなので、
+# ここで埋め合わせに架空の挙動を書くと目的が反転する。
+#
+# ── mac-workstation.toml との一本化 (2026-08-13) ──
+#
+# #735 (本ファイル) と #736 (`mac-workstation.toml`) が同じ目的のプロファイルを
+# 併走で入れ、main に darwin が 2 つ並んだ。同じルール群を二重に測ることになり、
+# darwin がフリート重みの 21.3% を占めてスコアカードの profiles 列も分散するため、
+# **本ファイルに一本化した**。
+#
+# 削除にあたり、`mac-workstation.toml` にしか無かった 2 つは移してある——
+# `pgrep`（精度の対照）と `vncviewer`（VNC ルールの測定）。**一本化で測定対象を
+# 減らしてはいけない**ので、上位互換であることを確かめてから消している。
+
+name        = "macbook"
+os          = "darwin"
+os_version  = "macOS 14.6.1 (23G93)"
+description = "業務用 MacBook: Jamf 管理下の開発/デザイン端末。Homebrew・Xcode・社内 SSH"
+host_prefix = "mac"
+fleet_weight = 15
+subnet      = "10.23.0.0/16"
+users       = ["ishikawa", "ogawa", "hayashi", "shimizu", "maeda"]
+
+[rates]
+process    = 320
+file       = 2400
+network    = 900
+dns        = 320
+auth       = 10
+image_load = 240
+
+# ─── プロセス ────────────────────────────────────────────────
+
+# 通常のデスクトップ利用。フロンティアだけで組むと「攻撃そっくりの操作しか
+# しない端末」になり、hosts 列の読み方 (§4) が壊れるので土台を先に置く。
+[[processes]]
+weight   = 18
+name     = "Google Chrome"
+path     = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+parent   = "launchd"
+user     = "{{user}}"
+cmdlines = [
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/126.0.6478.127/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer) --type=renderer",
+]
+
+[[processes]]
+weight   = 12
+name     = "Slack"
+path     = "/Applications/Slack.app/Contents/MacOS/Slack"
+parent   = "launchd"
+user     = "{{user}}"
+cmdlines = ["/Applications/Slack.app/Contents/MacOS/Slack"]
+
+[[processes]]
+weight   = 14
+name     = "git"
+path     = "/opt/homebrew/bin/git"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = [
+  "git fetch --all --prune",
+  "git status --porcelain",
+  "git switch -c feature/{{rand}}",
+  "git push origin feature/{{rand}}",
+]
+
+[[processes]]
+weight   = 10
+name     = "node"
+path     = "/opt/homebrew/bin/node"
+parent   = "npm"
+user     = "{{user}}"
+cmdlines = [
+  "node /opt/homebrew/lib/node_modules/npm/bin/npm-cli.js ci",
+  "node ./node_modules/.bin/next build",
+  "node ./node_modules/.bin/vitest run",
+]
+
+[[processes]]
+weight   = 8
+name     = "brew"
+path     = "/opt/homebrew/bin/brew"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = [
+  "brew update",
+  "brew upgrade",
+  "brew install {{rand}}",
+  "brew services restart postgresql@16",
+]
+
+[[processes]]
+weight   = 7
+name     = "xcodebuild"
+path     = "/usr/bin/xcodebuild"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = [
+  "xcodebuild -scheme App -destination 'platform=iOS Simulator,name=iPhone 15' build",
+  "xcodebuild -showsdks",
+]
+
+# ★ macOS System and Owner Discovery (T1082/T1033) の真正面。
+# Jamf は 15 分ごとのチェックインで棚卸しコマンドを走らせる。ルール本文の
+# falsepositives が挙げている "Inventory and management agents" そのもので、
+# darwin プロファイルが無かったあいだ一度も評価されていなかった。
+[[processes]]
+weight   = 8
+name     = "system_profiler"
+path     = "/usr/sbin/system_profiler"
+parent   = "jamf"
+user     = "root"
+cmdlines = [
+  "system_profiler SPHardwareDataType -json",
+  "system_profiler SPSoftwareDataType SPStorageDataType",
+  "system_profiler SPApplicationsDataType -detailLevel mini",
+]
+
+[[processes]]
+weight   = 5
+name     = "sw_vers"
+path     = "/usr/bin/sw_vers"
+parent   = "jamf"
+user     = "root"
+cmdlines = ["sw_vers -productVersion", "sw_vers"]
+
+[[processes]]
+weight   = 4
+name     = "whoami"
+path     = "/usr/bin/whoami"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = ["whoami"]
+
+# ★ 精度の対照。macOS Security Software Discovery は
+# tooling (/ps /pgrep /csrutil /spctl) **and** products (CrowdStrike, santad, …)
+# の両方を要求する。ここは Image が /pgrep に当たるが製品名を含まないので、
+# **鳴ってはならない**。
+#
+# 下の csrutil/spctl は「当たるべき側」、ここは「当たってはならない側」で、
+# 2 つ揃って初めてルールが `tooling and products` として効いていることが言える。
+# セレクタに届く入力だけを置くと、条件の and が or に退化していても気づけない。
+[[processes]]
+weight   = 4
+name     = "pgrep"
+path     = "/usr/bin/pgrep"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = [
+  "pgrep -f node",
+  "pgrep -x Docker",
+  "pgrep -f 'npm run dev'",
+]
+
+# ★ Remote Access via VNC Server or Client (T1021.005)。
+# 情シスの遠隔支援。macbook.toml の初版では「macOS の遠隔支援は画面共有 (ARD) が
+# 既定で vncviewer は出てこない」として**入れていなかった**が、併走していた
+# mac-workstation.toml (#736) は良性として入れており、一本化にあたって
+# **カバレッジの広い側を採った**。ルール本文の falsepositives も
+# "Legitimate IT remote-support sessions using VNC" を挙げている。
+#
+# 判断が割れた点なので明記しておく: 争点は「良性かどうか」ではなく
+# 「macOS で実際に出てくるか」だった。VNC クライアントを配る情シスは実在するので、
+# 測れるようにしておいて数字で判断する方が、憶測で外すより良い。
+[[processes]]
+weight   = 2
+name     = "vncviewer"
+path     = "/usr/local/bin/vncviewer"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = [
+  "vncviewer 10.23.0.31",
+  "vncviewer support-desk.corp.example.co.jp:5901",
+]
+
+# ★ macOS Security Software Discovery (T1518.001)。
+# Jamf のコンプライアンスポリシーが SIP と Gatekeeper の状態を定期確認する。
+#
+# ここは 2 つのルールを同時に測る点で価値が高い:
+#   - Security Software Discovery は `csrutil status` / `spctl --status` に当たる
+#     → 発火するなら実運用ノイズ。件数がそのまま判断材料になる
+#   - Disable SIP or Firewall は `disable` / `--setglobalstate off` を要求する
+#     → **ここで発火したらルール側の欠陥**。status を disable と誤認している
+[[processes]]
+weight   = 5
+name     = "csrutil"
+path     = "/usr/bin/csrutil"
+parent   = "jamf"
+user     = "root"
+cmdlines = ["csrutil status"]
+
+[[processes]]
+weight   = 4
+name     = "spctl"
+path     = "/usr/sbin/spctl"
+parent   = "jamf"
+user     = "root"
+cmdlines = [
+  "spctl --status",
+  "spctl --assess --type execute /Applications/Slack.app",
+]
+
+# ★ macOS Data Exfiltration via curl or scp Upload (T1041)。
+# 成果物を社内のステージングへ置く日常操作。ルールは `scp ` の 1 語だけを見るので、
+# 良性の scp がどれだけ鳴るかはそのまま実用性の判断材料になる。
+[[processes]]
+weight   = 6
+name     = "scp"
+path     = "/usr/bin/scp"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = [
+  "scp ./dist/app-{{rand}}.zip deploy@app-staging-01.corp.example.co.jp:/srv/releases/",
+  "scp deploy@app-staging-01.corp.example.co.jp:/var/log/app.log /Users/{{user}}/Downloads/",
+]
+
+[[processes]]
+weight   = 5
+name     = "curl"
+path     = "/usr/bin/curl"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = [
+  "curl -fsSL https://registry.npmjs.org/-/package/next/dist-tags",
+  "curl -T ./reports/weekly-{{date}}.pdf https://files.corp.example.co.jp/upload/",
+  "curl -H 'Authorization: Bearer ***' https://api.internal.example.co.jp/v1/deploy",
+]
+
+# ★ Exfiltration to Cloud Storage via Native CLI (T1567.002)。
+# 静的アセットの配信は S3 同期でやる。ルール本文の falsepositives が挙げる
+# "Legitimate backup, deployment, or data-pipeline jobs" そのもの。
+[[processes]]
+weight   = 5
+name     = "aws"
+path     = "/opt/homebrew/bin/aws"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = [
+  "aws s3 sync ./dist s3://corp-web-assets/app/ --delete",
+  "aws s3 cp ./dist/bundle-{{rand}}.js s3://corp-web-assets/app/",
+]
+
+# ★ Credential Harvesting from Shell or DB History (T1552.003)。
+# 「前に叩いたあのコマンド何だっけ」を履歴から引く操作。ルール本文の
+# falsepositives が挙げる "Users or admins legitimately inspecting their own history"。
+[[processes]]
+weight   = 3
+name     = "grep"
+path     = "/usr/bin/grep"
+parent   = "zsh"
+user     = "{{user}}"
+cmdlines = [
+  "grep -n kubectl /Users/{{user}}/.zsh_history",
+  "grep docker /Users/{{user}}/.zsh_history",
+]
+
+# ★ Unix System Shutdown or Reboot (T1529)。OS 更新後の再起動。
+[[processes]]
+weight   = 2
+name     = "shutdown"
+path     = "/sbin/shutdown"
+parent   = "sudo"
+user     = "root"
+cmdlines = ["shutdown -r now", "shutdown -r +1"]
+
+# ★ macOS Kernel Extension Load (T1547.006)。
+# VPN クライアント / 仮想化ソフトの導入時にだけ起きる。macOS 14 では system
+# extension への移行が進み頻度は低いので weight は最小にしてある——
+# 「起きる」ことと「よく起きる」ことは違う。
+[[processes]]
+weight   = 1
+name     = "kmutil"
+path     = "/usr/bin/kmutil"
+parent   = "installer"
+user     = "root"
+cmdlines = [
+  "kmutil load -p /Library/Extensions/CorpVPN.kext",
+  "kmutil showloaded --list-only",
+]
+
+# ─── ファイル ────────────────────────────────────────────────
+
+[[files]]
+weight  = 30
+process = "xcodebuild"
+actions = ["create", "modify", "delete"]
+size_range = [512, 104857600]
+paths = [
+  "/Users/{{user}}/Library/Developer/Xcode/DerivedData/App-{{rand}}/Build/Intermediates.noindex/App.build/Objects-normal/arm64/{{rand}}.o",
+  "/Users/{{user}}/Library/Developer/Xcode/DerivedData/App-{{rand}}/Index.noindex/DataStore/v5/records/{{rand}}",
+]
+
+[[files]]
+weight  = 24
+process = "node"
+actions = ["create", "modify", "delete"]
+size_range = [128, 8388608]
+paths = [
+  "/Users/{{user}}/project/node_modules/.package-lock.json",
+  "/Users/{{user}}/project/node_modules/{{rand}}/index.js",
+  "/Users/{{user}}/project/.next/cache/webpack/client-production/{{rand}}.pack",
+]
+
+[[files]]
+weight  = 16
+process = "brew"
+actions = ["create", "modify", "delete"]
+size_range = [256, 268435456]
+paths = [
+  "/opt/homebrew/Cellar/{{rand}}/1.{{randint}}.0/bin/{{rand}}",
+  "/opt/homebrew/var/homebrew/locks/{{rand}}.lock",
+  "/Users/{{user}}/Library/Caches/Homebrew/downloads/{{rand}}.tar.gz",
+]
+
+[[files]]
+weight  = 10
+process = "git"
+actions = ["create", "modify"]
+size_range = [64, 20971520]
+paths = [
+  "/Users/{{user}}/project/.git/objects/{{rand}}",
+  "/Users/{{user}}/project/.git/refs/heads/feature/{{rand}}",
+]
+
+# ★ macOS Launch Agent or Daemon plist File Creation (T1543.001/004)。
+# Mac でアプリを入れれば必ずログイン項目が登録される。ルール本文の
+# falsepositives が挙げる "Legitimate application installers registering a
+# login-time helper" そのもので、**第3波で最も誤検知が出やすいと見ている 1 件**。
+# 実測でここが煩ければ、抑制するか署名で絞るかの判断材料になる。
+[[files]]
+weight  = 6
+process = "installer"
+actions = ["create", "modify"]
+size_range = [256, 8192]
+paths = [
+  "/Users/{{user}}/Library/LaunchAgents/com.google.keystone.agent.plist",
+  "/Users/{{user}}/Library/LaunchAgents/com.docker.helper.plist",
+  "/Library/LaunchAgents/com.microsoft.update.agent.plist",
+  "/Library/LaunchDaemons/com.jamf.management.daemon.plist",
+  "/Library/LaunchDaemons/com.corp.vpn.helper.plist",
+]
+
+# ★ macOS Shell Startup File Modification (T1546.004)。
+# Homebrew / nvm / pyenv は PATH を通すために ~/.zprofile と ~/.zshrc を書き換える。
+# dev-machine.toml の .bashrc エントリ (migration 311 の FIM ルール向け) と同じ位置づけ。
+[[files]]
+weight  = 5
+process = "brew"
+actions = ["modify"]
+size_range = [128, 8192]
+paths = [
+  "/Users/{{user}}/.zprofile",
+  "/Users/{{user}}/.zshrc",
+  "/Users/{{user}}/.gitconfig",
+  "/Users/{{user}}/.ssh/known_hosts",
+]
+
+# ★ macOS Sudoers or Passwd Modification (T1548.003)。
+# Jamf が「一時的な管理者権限」ポリシーで /etc/sudoers.d に配る運用は珍しくない。
+#
+# darwin/file_collector.go の既定監視パスに /etc を足したのは migration 386 の
+# PR である (Linux 側は元から /etc を見ていた)。**その収集経路が実際に値を
+# 運ぶかを確かめられるのは、この spec が初めて**になる。
+[[files]]
+weight  = 2
+process = "jamf"
+actions = ["create", "modify", "delete"]
+size_range = [64, 4096]
+paths = [
+  "/etc/sudoers.d/jamf_temporary_admin",
+  "/etc/paths.d/corp-tools",
+  "/etc/hosts",
+]
+
+[[files]]
+weight  = 4
+process = "curl"
+actions = ["create"]
+size_range = [1024, 33554432]
+paths = ["/Users/{{user}}/Downloads/{{rand}}.pkg", "/Users/{{user}}/Downloads/{{rand}}.dmg"]
+
+# ─── ネットワーク ────────────────────────────────────────────
+
+[[network]]
+weight   = 22
+process  = "Google Chrome"
+proto    = "tcp"
+ports    = [443]
+hostname = "www.google.com"
+hosts    = ["142.250.196.100", "172.217.161.36"]
+bytes_sent_range = [500, 400000]
+bytes_recv_range = [2000, 60000000]
+
+[[network]]
+weight   = 16
+process  = "Slack"
+proto    = "tcp"
+ports    = [443]
+hostname = "slack.com"
+hosts    = ["3.89.118.115", "18.213.44.117"]
+bytes_sent_range = [300, 200000]
+bytes_recv_range = [1000, 12000000]
+
+[[network]]
+weight   = 15
+process  = "git"
+proto    = "tcp"
+ports    = [443, 22]
+hostname = "github.com"
+hosts    = ["140.82.113.4", "140.82.114.3"]
+bytes_sent_range = [1000, 30000000]
+bytes_recv_range = [1000, 60000000]
+
+[[network]]
+weight   = 12
+process  = "brew"
+proto    = "tcp"
+ports    = [443]
+hostname = "ghcr.io"
+hosts    = ["140.82.121.33", "104.16.100.215"]
+bytes_sent_range = [500, 60000]
+bytes_recv_range = [20000, 400000000]
+
+# S3 へのアセット同期。外向きの継続的な送信で、exfil_volume.go (T1048) の
+# 累積送信量が見る対象。backup-server が数百GB級を担当しているので、こちらは
+# 「日常的な中規模アップロード」の水準に留める——同じ現象を 2 プロファイルで
+# 重ねると、どちらが鳴らしたのか分からなくなる。
+[[network]]
+weight   = 10
+process  = "aws"
+proto    = "tcp"
+ports    = [443]
+hostname = "corp-web-assets.s3.ap-northeast-1.amazonaws.com"
+hosts    = ["52.219.68.42", "3.5.152.180"]
+bytes_sent_range = [100000, 200000000]
+bytes_recv_range = [500, 400000]
+
+# 社内ステージングへの scp/ssh。dev-machine と同じ形だが宛先レンジが違うので、
+# lateral_fanout.go が「プロファイル横断で鳴るか」を見られる。
+[[network]]
+weight   = 10
+process  = "scp"
+proto    = "tcp"
+ports    = [22]
+hostname = "app-staging.corp.example.co.jp"
+hosts    = ["10.23.255.11", "10.23.255.12", "10.23.255.13"]
+bytes_sent_range = [4000, 80000000]
+bytes_recv_range = [2000, 8000000]
+
+# Jamf の 15 分チェックイン。棚卸しコマンド群を叩く親プロセスの通信相手。
+[[network]]
+weight   = 8
+process  = "jamf"
+proto    = "tcp"
+ports    = [443]
+hostname = "corp.jamfcloud.com"
+hosts    = ["52.196.44.19", "13.115.211.88"]
+bytes_sent_range = [2000, 900000]
+bytes_recv_range = [1000, 3000000]
+
+[[network]]
+weight   = 7
+process  = "node"
+proto    = "tcp"
+ports    = [443]
+hostname = "registry.npmjs.org"
+hosts    = ["104.16.24.35", "104.16.25.35"]
+bytes_sent_range = [500, 30000]
+bytes_recv_range = [10000, 120000000]
+
+# ─── DNS ─────────────────────────────────────────────────────
+
+[[dns]]
+weight  = 26
+process = "Google Chrome"
+queries = ["www.google.com", "docs.google.com", "fonts.gstatic.com", "www.notion.so"]
+
+[[dns]]
+weight  = 18
+process = "Slack"
+queries = ["slack.com", "wss-primary.slack.com", "files.slack.com"]
+
+[[dns]]
+weight  = 16
+process = "git"
+queries = ["github.com", "codeload.github.com", "objects.githubusercontent.com"]
+
+# Apple の各種エンドポイント。macOS 端末なら必ず出るので、darwin プロファイルの
+# DNS が「Linux 機の名前解決を macOS だと言い張っている」形にならないよう置く。
+[[dns]]
+weight  = 14
+process = "launchd"
+queries = [
+  "swscan.apple.com",
+  "gs.apple.com",
+  "mdmenrollment.apple.com",
+  "ocsp2.apple.com",
+  "configuration.apple.com",
+]
+
+[[dns]]
+weight  = 10
+process = "jamf"
+queries = ["corp.jamfcloud.com", "jamf.corp.example.co.jp"]
+
+[[dns]]
+weight  = 8
+process = "brew"
+queries = ["ghcr.io", "formulae.brew.sh", "pkg-containers.githubusercontent.com"]
+
+[[dns]]
+weight  = 8
+process = "aws"
+queries = [
+  "corp-web-assets.s3.ap-northeast-1.amazonaws.com",
+  "sts.ap-northeast-1.amazonaws.com",
+]
+
+# ─── 認証 ────────────────────────────────────────────────────
+
+[[auth]]
+weight  = 55
+users   = ["{{user}}"]
+actions = ["login"]
+success = true
+methods = ["password"]
+
+# Touch ID / パスワードによる管理者昇格 (sudo, インストーラの認可ダイアログ)。
+[[auth]]
+weight  = 30
+users   = ["{{user}}"]
+actions = ["privilege"]
+success = true
+methods = ["password"]
+
+# スリープ復帰時のタイプミス。単発では鳴ってはならない
+# (auth_attack.go はレート現象でのみ判定する) ことの確認材料。
+[[auth]]
+weight  = 15
+users   = ["{{user}}"]
+actions = ["failed"]
+success = false
+methods = ["password"]
+failure_reason = "Authentication failure"
+
+# ─── モジュールロード ────────────────────────────────────────
+
+[[image_loads]]
+weight  = 55
+process = "Google Chrome"
+signed  = true
+signer  = "Apple Inc."
+paths   = [
+  "/usr/lib/libSystem.B.dylib",
+  "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+  "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+]
+
+# Homebrew が入れる dylib は ad-hoc 署名で、Apple の署名チェーンを持たない。
+# 「未署名モジュールのロード」を見るルールにとっての良性フロンティアで、
+# Windows 側 (office-pc/it-admin) にしか無かった観点をこちらにも置く。
+[[image_loads]]
+weight  = 30
+process = "node"
+signed  = false
+paths   = [
+  "/opt/homebrew/lib/libssl.3.dylib",
+  "/opt/homebrew/lib/libcrypto.3.dylib",
+  "/Users/{{user}}/project/node_modules/sharp/build/Release/sharp.node",
+]
+
+[[image_loads]]
+weight  = 15
+process = "xcodebuild"
+signed  = true
+signer  = "Apple Inc."
+paths   = [
+  "/Applications/Xcode.app/Contents/SharedFrameworks/DVTFoundation.framework/Versions/A/DVTFoundation",
+  "/usr/lib/libc++.1.dylib",
+]

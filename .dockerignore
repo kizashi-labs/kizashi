@@ -1,0 +1,57 @@
+# Node.js dependencies and build output (largest contributors to context size)
+frontend/node_modules
+frontend/.next
+frontend/.turbo
+frontend/out
+frontend/coverage
+
+# Agent build artifacts
+agent/bin
+agent/*.exe
+agent/dist
+
+# Go build cache and test artifacts
+server/vendor
+server/*.test
+server/coverage.out
+
+# Documentation (not needed in Docker image)
+docs/
+*.md
+NOTICE
+LICENSE*
+
+# IDE and OS files
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.github
+
+# Load testing (not in Docker image)
+deploy/loadtest
+
+# Local environment files
+*.env
+*.env.*
+!*.env.example
+# .env.local はローカル開発専用（NEXT_PUBLIC_USE_MOCK=true など）。本番ビルドに含めない
+frontend/.env.local
+.env.local
+
+# Terraform state (sensitive)
+deploy/terraform/**/.terraform
+deploy/terraform/**/terraform.tfstate*
+deploy/terraform/**/.terraform.lock.hcl
+
+# Demo reset script artifacts
+deploy/demo/*.log
+
+# Test coverage artifacts
+**/coverage
+**/*.coverprofile

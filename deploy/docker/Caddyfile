@@ -1,0 +1,67 @@
+# EDR Platform - Caddy Reverse Proxy
+# Automatic HTTPS via Let's Encrypt
+
+# Redirect bare HTTP to HTTPS
+http://{$EDR_DOMAIN} {
+    redir https://{$EDR_DOMAIN}{uri} permanent
+}
+
+{$EDR_DOMAIN} {
+
+    # Frontend (Next.js)
+    handle /* {
+        reverse_proxy frontend:3000
+    }
+
+    # REST API
+    handle /api/* {
+        reverse_proxy server-api:8080
+    }
+
+    # Agent binary downloads (place agent binaries in ./downloads/ on the host)
+    handle /downloads/* {
+        root * /srv/downloads
+        file_server {
+            browse
+        }
+        header Content-Disposition "attachment"
+    }
+
+    # Grafana 監視ダッシュボード (内部アクセス用)
+    handle /grafana/* {
+        reverse_proxy grafana:3000
+    }
+
+    # WebSocket for real-time updates
+    handle /ws/* {
+        reverse_proxy server-api:8080 {
+            transport http {
+                versions h2c 1.1
+            }
+        }
+    }
+
+    # Security headers
+    header {
+        # HSTS: 1 year, include subdomains, preload-ready
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+        # CSP is set by Next.js for frontend pages; this covers API responses
+        Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+        # Remove server identification headers
+        -Server
+        -X-Powered-By
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+}

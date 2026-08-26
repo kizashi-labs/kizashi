@@ -1,0 +1,10 @@
+# Build staging and output. `bin/` holds binaries copied in by the workflow so
+# nfpm can glob them (it does not expand ${VAR} in contents[].src); `out/` and
+# the package files are the products.
+nfpm/bin/
+nfpm/out/
+*.deb
+*.rpm
+*.msi
+*.pkg
+*.sha256

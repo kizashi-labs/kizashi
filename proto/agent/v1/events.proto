@@ -1,0 +1,337 @@
+syntax = "proto3";
+
+package agent.v1;
+
+option go_package = "github.com/edr-platform/proto/gen/go/agent/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Event Types ─────────────────────────────────────────────
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_PROCESS     = 1;
+  EVENT_TYPE_FILE        = 2;
+  EVENT_TYPE_NETWORK     = 3;
+  EVENT_TYPE_LOG         = 4;
+  EVENT_TYPE_DNS         = 5;
+  EVENT_TYPE_REGISTRY    = 6; // Windows only
+  EVENT_TYPE_AUTH        = 7;
+  EVENT_TYPE_IMAGE_LOAD  = 8; // module/DLL load (sideloading detection)
+  EVENT_TYPE_SCRIPT      = 9; // script content (PowerShell ScriptBlock / AMSI)
+}
+
+enum Platform {
+  PLATFORM_UNSPECIFIED = 0;
+  PLATFORM_WINDOWS     = 1;
+  PLATFORM_LINUX       = 2;
+  PLATFORM_DARWIN      = 3;
+}
+
+// ─── Process Event ────────────────────────────────────────────
+
+message ProcessEvent {
+  uint32 pid              = 1;
+  uint32 ppid             = 2;
+  string process_name     = 3;
+  string command_line     = 4;
+  string image_path       = 5;
+  string username         = 6;
+  string session_id       = 7;
+  FileHashes hashes       = 8;
+  ProcessAction action    = 9;
+  repeated string env_vars = 10; // collected if suspicious
+
+  // PE VERSIONINFO (VS_VERSIONINFO) fields — populated best-effort by the
+  // Windows agent from the executable's version resource. These drive the large
+  // class of SigmaHQ process_creation rules that identify a binary by its
+  // embedded metadata rather than its (renamable) path — "renamed CreateDump /
+  // Office / LOLBin" detection. Empty when the file has no version resource or
+  // could not be read (short-lived process whose image is already gone).
+  string original_file_name = 11; // Sigma OriginalFileName
+  string file_description   = 12; // Sigma Description
+  string product_name       = 13; // Sigma Product
+  string company_name       = 14; // Sigma Company
+
+  // Process token integrity level (Windows), as the Sysmon label:
+  // Untrusted|Low|Medium|High|System. Drives UAC-bypass / privilege-escalation
+  // SigmaHQ rules that gate on IntegrityLevel. Empty on non-Windows or when the
+  // token could not be read.
+  string integrity_level = 15; // Sigma IntegrityLevel
+
+  // Logon session ID (Windows) as the Sysmon hex LUID string, e.g. "0x3e7"
+  // (the well-known SYSTEM session). Drives SigmaHQ rules that gate on LogonId
+  // (elevated-shell / privilege-escalation). Empty on non-Windows or when the
+  // token could not be read.
+  string logon_id = 16; // Sigma LogonId
+
+  // The parent process, resolved on the endpoint at the moment the child is
+  // observed. ppid alone is not enough for anything downstream: it is a number
+  // that is reused, and by the time a query runs the parent is usually gone.
+  //
+  // Every consumer that wanted the parent had to invent its own answer and none
+  // of them worked. The server read raw_data->>'parent_name' and
+  // ->>'parent_image', which this message never carried, so the parent was
+  // empty on every row — and mitreFromParentChild(), the whole Office-spawns-a-
+  // shell / browser-spawns-PowerShell technique table, was called with an empty
+  // parent every time and could never match. detection's parentResolver looks
+  // ppid up against recent events, which only works while the parent is still
+  // in the window and never leaves the process's memory.
+  //
+  // Resolving on the endpoint is the only place the answer is reliable: the
+  // agent sees the create event while the parent is still alive, and /proc (or
+  // the Windows/ESF equivalent) is right there. Empty when the parent exited
+  // before it could be read, which is honest and rare — as opposed to always.
+  string parent_name  = 17; // Sigma ParentImage (basename)
+  string parent_image = 18; // Sigma ParentImage (full path)
+
+  // Container containment, derived from /proc on the endpoint.
+  //
+  // server/internal/cloudruntime read container_id, privileged and host_network
+  // off process events and the agent collected none of them, so
+  // privileged-container detection, host-network detection and the "containers
+  // monitored" count were structurally zero. It also selected two event types —
+  // container_event and container_process — that events_event_type_check does
+  // not permit, so those rows could never exist either.
+  //
+  // Containment is a kernel property, so none of this needs a runtime API: the
+  // cgroup path names the container, CapEff says whether it is privileged, and
+  // comparing the net namespace to PID 1's says whether it shares the host's
+  // network. No Docker socket, no containerd client, no new privilege.
+  //
+  // Deliberately absent: container_name and image_name. Those are runtime
+  // bookkeeping rather than kernel state — the cgroup path encodes them only
+  // sometimes, and differently per runtime — so they are left uncollected
+  // rather than guessed at.
+  string container_id            = 19; // 64-hex container ID, "" outside a container
+  bool   container_privileged    = 20; // full capability set — `--privileged`
+  bool   container_host_network  = 21; // shares PID 1's netns — `--network=host`
+
+  enum ProcessAction {
+    PROCESS_ACTION_UNSPECIFIED = 0;
+    PROCESS_ACTION_CREATE      = 1;
+    PROCESS_ACTION_TERMINATE   = 2;
+    PROCESS_ACTION_INJECT      = 3; // detected via memory scan
+    PROCESS_ACTION_HOLLOW      = 4; // process hollowing
+  }
+}
+
+// ─── File Event ───────────────────────────────────────────────
+
+message FileEvent {
+  string path           = 1;
+  string old_path       = 2; // for renames
+  FileAction action     = 3;
+  FileHashes hashes     = 4;
+  uint32 pid            = 5;
+  string process_name   = 6;
+  int64 file_size       = 7;
+  bool yara_matched     = 8;
+  repeated string yara_rule_ids = 9;
+
+  enum FileAction {
+    FILE_ACTION_UNSPECIFIED = 0;
+    FILE_ACTION_CREATE      = 1;
+    FILE_ACTION_MODIFY      = 2;
+    FILE_ACTION_DELETE      = 3;
+    FILE_ACTION_RENAME      = 4;
+    FILE_ACTION_EXECUTE     = 5;
+  }
+}
+
+// ─── Network Event ────────────────────────────────────────────
+
+message NetworkEvent {
+  string src_ip         = 1;
+  uint32 src_port       = 2;
+  string dst_ip         = 3;
+  uint32 dst_port       = 4;
+  string protocol       = 5; // tcp|udp|icmp
+  NetworkDirection direction = 6;
+  uint64 bytes_sent     = 7;
+  uint64 bytes_recv     = 8;
+  uint32 pid            = 9;
+  string process_name   = 10;
+  string hostname       = 11; // resolved via DNS
+  bool is_encrypted     = 12;
+  string country_code   = 13; // GeoIP enriched server-side
+  ThreatIntelHit threat_intel = 14;
+
+  enum NetworkDirection {
+    NETWORK_DIRECTION_UNSPECIFIED = 0;
+    NETWORK_DIRECTION_INBOUND     = 1;
+    NETWORK_DIRECTION_OUTBOUND    = 2;
+  }
+}
+
+// ─── DNS Event ────────────────────────────────────────────────
+
+message DnsEvent {
+  string query          = 1;
+  string query_type     = 2; // A|AAAA|MX|TXT|...
+  repeated string answers = 3;
+  uint32 pid            = 4;
+  string process_name   = 5;
+  bool is_suspicious    = 6; // DGA detection, homograph, etc.
+}
+
+// ─── Registry Event (Windows) ─────────────────────────────────
+
+message RegistryEvent {
+  string key_path       = 1;
+  string value_name     = 2;
+  string value_data     = 3;
+  RegistryAction action = 4;
+  uint32 pid            = 5;
+  string process_name   = 6;
+
+  enum RegistryAction {
+    REGISTRY_ACTION_UNSPECIFIED = 0;
+    REGISTRY_ACTION_CREATE      = 1;
+    REGISTRY_ACTION_MODIFY      = 2;
+    REGISTRY_ACTION_DELETE      = 3;
+    REGISTRY_ACTION_QUERY       = 4;
+  }
+}
+
+// ─── Auth Event ───────────────────────────────────────────────
+
+message AuthEvent {
+  string username       = 1;
+  AuthAction action     = 2;
+  bool success          = 3;
+  string source_ip      = 4;
+  string auth_method    = 5; // password|key|token|mfa
+  string failure_reason = 6;
+  string logon_type     = 7; // Windows 4624/4625 LogonType (e.g. 3=Network, 10=RemoteInteractive/RDP); "" on non-Windows
+
+  // Raw Windows Security-log Event ID (4624/4625/4634/4672/4765/4766/4768/4769);
+  // 0 on non-Windows and for any collector that has no numeric event id.
+  //
+  // **数値です。** 一時この枝では十進文字列にしていたが、読む側が数で見る:
+  // detection の auth_attack と、SID-History (4765/4766) を Sigma の EventID に
+  // 出す門はどちらも toFloat64 を通しており、toFloat64 は文字列を受け取らない。
+  // WMI イベントの event_id も既に数値なので、そちらとも揃う。
+  //
+  // これが無かった間、`service: security` の Sigma ルールで EventID を選ぶものは
+  // どれもエージェント由来のテレメトリから到達できず、とくに 4765/4766 は他に
+  // 区別できる欄が無いため、ルールの書き方に関わらず検知できなかった。
+  // 同じ理由で `raw_data->>'event_id' = '4769'` を見る条件も死んでいた。
+  uint32 event_id       = 8;
+
+  // Kerberos service-ticket fields, from Security 4769 (TGS-REQ) and 4768
+  // (AS-REQ). Empty for every other kind of authentication.
+  //
+  // These are the whole input to Kerberoasting detection: an attacker requests
+  // a service ticket for an account with an SPN, forces RC4 so the ticket is
+  // encrypted with the service account's NTLM hash, and cracks it offline.
+  // The detection keys on the SPN plus a weak encryption type, and it had
+  // neither — AuthEvent carried no Kerberos fields at all, so
+  // ldap.DetectKerberoasting matched nothing on any deployment.
+  string target_spn = 9; // 4769 ServiceName, e.g. MSSQLSvc/db01.corp.local:1433
+  // 4769 TicketEncryptionType, as the hex string Windows logs: 0x17/0x18 are
+  // RC4 (crackable offline — the Kerberoasting signal), 0x11/0x12 are AES.
+  string ticket_encryption_type = 10;
+
+  enum AuthAction {
+    AUTH_ACTION_UNSPECIFIED = 0;
+    AUTH_ACTION_LOGIN       = 1;
+    AUTH_ACTION_LOGOUT      = 2;
+    AUTH_ACTION_PRIVILEGE   = 3; // privilege escalation
+    AUTH_ACTION_FAILED      = 4;
+    // Kerberos service-ticket request (Security 4769). Not a logon: nobody
+    // authenticated to this host, a ticket was issued for a service. Given its
+    // own value so it is not reported as an unspecified login.
+    AUTH_ACTION_SERVICE_TICKET = 5;
+  }
+}
+
+// ─── Image Load Event (module/DLL load) ──────────────────────
+
+message ImageLoadEvent {
+  string image_path     = 1; // path of the loaded module/DLL
+  uint32 pid            = 2; // process that loaded the module
+  string process_name   = 3;
+  bool signed           = 4; // whether the module has a valid Authenticode signature
+  string signature_status = 5; // valid|invalid|unsigned|expired|unknown
+  string signer         = 6; // signing subject, when available
+  FileHashes hashes     = 7;
+}
+
+// ─── Script Content Event (PowerShell ScriptBlock / AMSI) ─────
+
+message ScriptContentEvent {
+  string engine       = 1; // powershell|amsi|wscript|jscript|vba
+  string content      = 2; // deobfuscated script text (may be truncated)
+  uint32 pid          = 3;
+  string process_name = 4;
+  string content_hash = 5; // sha256 of full content (for dedup/IOC)
+  uint32 block_number = 6; // ScriptBlock sequence (PowerShell 4104)
+  uint32 block_total  = 7;
+}
+
+// ─── Shared Types ─────────────────────────────────────────────
+
+message FileHashes {
+  string md5    = 1;
+  string sha1   = 2;
+  string sha256 = 3;
+}
+
+message ThreatIntelHit {
+  bool matched          = 1;
+  string source         = 2; // e.g. "abuse.ch", "urlhaus"
+  string category       = 3; // malware|c2|phishing|tor
+  uint32 confidence     = 4; // 0-100
+}
+
+// ─── Wrapper Event ────────────────────────────────────────────
+
+message Event {
+  string id                               = 1;
+  google.protobuf.Timestamp timestamp     = 2;
+  EventType type                          = 3;
+  uint32 schema_version                   = 4;
+
+  oneof payload {
+    ProcessEvent  process  = 10;
+    FileEvent     file     = 11;
+    NetworkEvent  network  = 12;
+    DnsEvent      dns      = 13;
+    RegistryEvent registry = 14;
+    AuthEvent     auth     = 15;
+    ImageLoadEvent image_load = 16;
+    ScriptContentEvent script = 17;
+  }
+}
+
+message EventBatch {
+  string agent_id       = 1;
+  repeated Event events = 2;
+  uint64 sequence_id    = 3; // monotonic, for dedup
+  Platform platform     = 4;
+
+  // acks は、直前に実行したサーバコマンドの結果。イベント送信に相乗りさせる。
+  //
+  // 専用の RPC を足さないのは、既にある永続ストリームと mTLS・再接続処理を
+  // そのまま使えるため。新しいフィールドなので、ack を返さない旧エージェントは
+  // 従来どおり動く（サーバ側は期限切れとして畳む）。
+  repeated CommandAck acks = 5;
+}
+
+// CommandAck はサーバコマンドの実行結果。command_id は ServerCommand で
+// 受け取った値をそのまま返す。サーバはこれを response_actions.id として扱い、
+// 対応する監査記録を終了状態に更新する。
+message CommandAck {
+  string command_id = 1;
+  AckStatus status  = 2;
+  string error      = 3;
+  bytes  result     = 4; // command-specific result payload
+
+  enum AckStatus {
+    ACK_STATUS_UNSPECIFIED = 0;
+    ACK_STATUS_SUCCESS     = 1;
+    ACK_STATUS_FAILED      = 2;
+    ACK_STATUS_PARTIAL     = 3;
+  }
+}

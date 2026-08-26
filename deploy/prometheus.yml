@@ -1,0 +1,72 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    service:     'edr-platform'
+
+# アラートルールファイル
+#
+# /etc/prometheus/alerts.yml は一度「存在しない死んだ参照」として消されまし
+# たが、docker-compose.monitoring.yml は今もそこに prometheus_alerts.yml を
+# マウントしています。参照だけが消えた結果、**19本のアラートがどこからも
+# 読まれない**状態になっていました。中身は EDRApiDown / PostgresDown /
+# NATSDown / EDRDetectionDown — いちばん基本的な「落ちている」の検知です。
+# rules/ 配下の2ファイルとは1本も重複しません。
+#
+# マウントと参照がずれていないことは scripts/check_prometheus_rules.py が
+# 見ています。
+rule_files:
+  - /etc/prometheus/rules/edr-recording-rules.yml
+  - /etc/prometheus/rules/edr-alerts.yml
+  - /etc/prometheus/alerts.yml
+
+# Alertmanager への接続
+#
+# ここがコメントのままだったあいだ、上の3ファイル30本は評価され、発火し、
+# Prometheus の画面に赤く出て、**そこで終わっていました。** ルールが在ること
+# と、誰かに届くことは別です。ファイルが在ることと読まれることが別だったのと
+# 同じ形が、1段上でもう一度ありました。
+#
+# alertmanager は docker-compose.monitoring.yml の monitoring ネットワークに
+# います。参照と実体がずれていないことは scripts/check_prometheus_rules.py が
+# 見ています。
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # ─── EDR API サービス ───────────────────────
+  - job_name: 'edr-api'
+    static_configs:
+      - targets: ['api:8080']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ─── EDR 検知エンジン ─────────────────────
+  - job_name: 'edr-detection'
+    static_configs:
+      - targets: ['detection:8081']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ─── EDR 収集サービス ─────────────────────
+  - job_name: 'edr-ingestion'
+    static_configs:
+      - targets: ['ingestion:9091']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ─── NATS メッセージング ──────────────────
+  - job_name: 'nats'
+    static_configs:
+      - targets: ['nats:8222']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # ─── Prometheus 自身 ─────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
