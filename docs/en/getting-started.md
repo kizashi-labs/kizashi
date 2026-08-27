@@ -109,14 +109,8 @@ working — the token is only used at first contact.
 
 ## 5. Install an agent
 
-The installers take **environment variables**, not flags.
-
-**Linux / macOS**
-
-```bash
-sudo SERVER_URL=https://edr.example.com ENROLLMENT_TOKEN=<token> \
-  ./deploy/install/install.sh
-```
+This edition ships a **Windows** agent; Linux and macOS agents are part of the
+commercial edition. The installer takes **environment variables**, not flags.
 
 **Windows (PowerShell as Administrator)**
 
@@ -126,37 +120,31 @@ $env:ENROLLMENT_TOKEN = '<token>'
 .\deploy\install\install.ps1
 ```
 
-The installer downloads `edr-agent` and `edr-watchdog` from your server,
-verifies their SHA-256, writes `/etc/edr/agent.toml`, and registers the
-**watchdog** as the service. The watchdog starts and supervises the agent, and
-rolls back a binary update that crashes within 60 seconds of start.
+The installer downloads `edr-agent` and `edr-watchdog` from your server, verifies
+their SHA-256, installs into `C:\ProgramData\EDRAgent` (config at `agent.toml`),
+and registers the **watchdog** as the `EDRWatchdog` service. The watchdog starts
+and supervises the agent, and rolls back a binary update that crashes within 60
+seconds of start.
 
 Full reference — install layout, manual install, updating, uninstalling:
 [`deploy/install/README.md`](../../deploy/install/README.md).
 
-### Binaries you have to build yourself
+### Where the binaries come from
 
-No pre-built binaries ship in this repository; the server builds them into
-`/downloads` at image build time. Two targets are missing from that build:
+No pre-built binaries ship in this repository, and none are needed: building the
+API image cross-compiles the Windows agent and the watchdog into `/downloads`
+(`AGENT_BIN_DIR`) for both `amd64` and `arm64`, so `docker compose up -d` leaves
+you with a server that can already hand out agents. The installer endpoints and
+the console's deploy page serve them from there, together with `.sha256` sidecars.
 
-| Target | Why | How |
-|---|---|---|
-| `darwin/arm64` | the image builds `darwin/amd64` only | `cd agent && make build-darwin-arm64`, rename to `edr-agent-darwin-arm64` |
-| Linux **with eBPF** | the build stage has no clang, so Linux is compiled *without* `-tags ebpf` | generate CO-RE bindings with `agent/ebpf/Makefile`, then `go build -tags ebpf -o edr-agent-linux-amd64 ./cmd/agent` |
-
-The default Linux agent therefore uses **procfs polling**, not eBPF. It works,
-but it misses short-lived processes.
+**The binaries are not code signed.** Windows SmartScreen will say so. Sign them
+yourself if you are deploying beyond a lab.
 
 ## 6. Confirm it worked
 
-```bash
-# Linux
-sudo systemctl status edr-agent
-sudo journalctl -u edr-agent -f
-
-# macOS
-sudo launchctl list | grep edr-agent
-tail -f /var/log/edr-agent/agent.log
+```powershell
+Get-Service EDRWatchdog
+Get-Content 'C:\ProgramData\EDRAgent\logs\watchdog.log' -Wait -Tail 50
 ```
 
 In the console, `/endpoints` should show the host as `online` within a minute or

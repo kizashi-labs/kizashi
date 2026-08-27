@@ -38,7 +38,7 @@ func TestCommandToProto_DropsMalformedPayload(t *testing.T) {
 				ID:      "cmd-1",
 				Type:    tc.cmdType,
 				Payload: json.RawMessage(tc.payload),
-			})
+			}, nil)
 			if got != nil {
 				t.Fatalf("壊れたペイロードなのに送信対象が組み立てられている: %+v", got)
 			}
@@ -52,7 +52,7 @@ func TestCommandToProto_KeepsValidPayload(t *testing.T) {
 		Type:    "kill_process",
 		Payload: json.RawMessage(`{"pid": 4242, "reason": "ransomware"}`),
 	}
-	got := commandToProto(cmd)
+	got := commandToProto(cmd, nil)
 	if got == nil {
 		t.Fatal("正しいペイロードが落とされている")
 	}
@@ -81,7 +81,7 @@ func TestCommandToProto_PassthroughTypesUnaffected(t *testing.T) {
 				ID:      "cmd-3",
 				Type:    cmdType,
 				Payload: json.RawMessage(`{"type":"` + cmdType + `"}`),
-			})
+			}, nil)
 			if got == nil {
 				t.Fatalf("%s が落とされている", cmdType)
 			}

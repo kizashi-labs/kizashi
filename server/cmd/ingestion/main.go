@@ -132,6 +132,34 @@ func main() {
 	agentStore := store.NewAgentStore(db)
 	server := ingestion.NewServer(&agentStoreAdapter{agentStore}, db.Pool(), nc, dispatcher, creds)
 
+	// 隔離中も到達させるアドレス。proto の allow_ips は最初からあったが、
+	// **サーバがここを一度も詰めていなかった**ので、隔離された端末から届くのは
+	// EDR サーバとループバックだけだった。踏み台や DC を残す手段が運用側に無い。
+	//
+	// 起動時に弾く。受け側の agent も解釈できない項目は落としてログに出すが、
+	// それが読まれるのは端末が隔離されたあとで、そのときには「除外したはずの
+	// セグメントが遮断されている」状態になっている。隔離は外から取り消せない。
+	allowIPs, rejected := ingestion.ParseAllowIPs(os.Getenv("ISOLATION_ALLOW_IPS"))
+	for _, r := range rejected {
+		// **警告で済ませて続行する。** ここで停止すると、1 行の書き間違いで
+		// ingestion が上がらなくなり、隔離どころかイベントの受け口ごと落ちる。
+		// ただし黙って捨てはしない —— 捨てられた項目は「除外したはずの
+		// セグメントが遮断される」として現れ、隔離を解くまで気づけない。
+		slog.Error("ISOLATION_ALLOW_IPS に解釈できない項目があります。この項目は許可されません",
+			"entry", r)
+	}
+	if len(allowIPs) > 0 {
+		slog.Info("隔離中も到達を許可するアドレスを読み込みました",
+			"件数", len(allowIPs), "対象", allowIPs)
+	} else {
+		// 空が既定であることを起動ログに残す。「設定したのに効かない」と
+		// 「そもそも配られていない」を、あとから切り分けられるようにする
+		// （compose が env を渡していなかったために検査が丸ごと素通りした
+		// 前例がある）。
+		slog.Info("ISOLATION_ALLOW_IPS は未設定です。隔離中の到達先は EDR サーバとループバックのみになります")
+	}
+	server.SetIsolationAllowIPs(allowIPs)
+
 	// アンインストール保護の材料を gRPC のハートビート応答にも載せる。
 	//
 	// HTTP 側 (agents_handler) だけに載せると、`FallbackSender` が gRPC を

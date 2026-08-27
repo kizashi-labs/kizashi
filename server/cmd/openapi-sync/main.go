@@ -302,6 +302,31 @@ func CollectRoutes(src string) []Route {
 // families. Detecting a fault and not failing on it is the same as not
 // detecting it.
 func CollectRoutesWithDiagnostics(src string) ([]Route, []string) {
+	// 2 周する。1 周目はファイル全体のグループ定義表を作るためだけで、結果は捨てる。
+	//
+	// **連結の順序は router.go を先頭にした名前順でしかない。** ヘルパ関数の
+	// 仮引数を呼び出し側の実引数へ束ねるとき、その実引数が「あとから来るファイル」
+	// で定義されていると、1 周だけでは scopes にも allGroups にも無く解決に失敗する。
+	//
+	// 実例: routes_commercial.go の
+	//   func (s *Server) registerCommercialRuleRoutes(rules *gin.RouterGroup)
+	// は routes_noncore.go の `rules := protected.Group("/rules")` を実引数に取るが、
+	// commercial < noncore の名前順で先に走査されるため rules が未定義に見え、
+	// POST /rules/ai-generate が抽出から漏れていた。
+	//
+	// 隣の registerCommercialAlertRoutes(alerts) が漏れなかったのは、alerts が
+	// router.go（必ず先頭）で定義されているからにすぎない。**登録を切り出した
+	// ファイルの名前次第で漏れたり漏れなかったりする**のは関門として成立しないので、
+	// 前方参照を解決できるようにする。
+	_, _, seed := collectOnce(src, nil)
+	out, unresolved, _ := collectOnce(src, seed)
+	return out, unresolved
+}
+
+// collectOnce は src を 1 周して、解決できたルート・解決できなかった登録・
+// 見つかったグループ定義表を返す。seed は前の周回で見つかったグループ定義で、
+// 前方参照の解決に使う（nil なら空から始める）。
+func collectOnce(src string, seed map[string]*groupInfo) ([]Route, []string, map[string]*groupInfo) {
 	scopes := []map[string]*groupInfo{{}}
 	lookup := func(v string) (*groupInfo, bool) {
 		if isRootRouter(v) {
@@ -324,7 +349,14 @@ func CollectRoutesWithDiagnostics(src string) ([]Route, []string) {
 	// ので件数にも出ない）。呼び出し側の実引数を仮引数に束縛して解決する。
 	// ヘルパ関数の仮引数を束縛するとき、実引数（例: protected）は別の関数で
 	// 定義されていてスコープからは消えている。ファイル全体の定義表を別に持つ。
+	// seed は値でコピーする。groupInfo は useRe の枝で authReq を書き換えるので、
+	// 前の周回のポインタをそのまま持ち込むと、その周回で付いた認証フラグが
+	// 混ざり込む。
 	allGroups := map[string]*groupInfo{}
+	for k, v := range seed {
+		gi := *v
+		allGroups[k] = &gi
+	}
 	// 呼び出し側の実引数を、仮引数の位置に対応づける。
 	//
 	// 以前は1引数だけを見ていた。ルート登録を機能ごとの登録関数へ切り出すと、
@@ -449,7 +481,7 @@ func CollectRoutesWithDiagnostics(src string) ([]Route, []string) {
 		}
 		return methodOrder(out[i].Method) < methodOrder(out[j].Method)
 	})
-	return out, unresolved
+	return out, unresolved, allGroups
 }
 
 func isRootRouter(v string) bool { return v == "router" || v == "r" || v == "engine" }

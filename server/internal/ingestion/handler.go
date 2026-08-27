@@ -66,6 +66,17 @@ type Server struct {
 	// 検証は通信が切れた状態でも走ります —— そのとき取りに行く機会は
 	// ありません。両方の経路で運びます（transport_parity_test.go）。
 	uninstallGuard func(ctx context.Context, agentID string) map[string]any
+
+	// isolationAllowIPs は隔離中も到達させるアドレス（ISOLATION_ALLOW_IPS）。
+	//
+	// **これが空だと、隔離された端末から届くのは EDR サーバとループバックだけ。**
+	// DNS も DC も踏み台も切れる。それが隔離の意図ではある一方、proto の
+	// allow_ips は最初から "additional IPs to allow (override)" として存在し、
+	// **誰も詰めていなかった**ため、運用側に踏み台を残す手段が無かった。
+	//
+	// 送出時に載せる。コマンドの payload ではなく配備の性質（どのセグメントを
+	// 生かすか）なので、投入経路ごとに書かせると必ず書き忘れた経路ができる。
+	isolationAllowIPs []string
 }
 
 // SetUninstallGuardProvider wires the uninstall-password material into the gRPC
@@ -74,6 +85,10 @@ type Server struct {
 func (s *Server) SetUninstallGuardProvider(f func(ctx context.Context, agentID string) map[string]any) {
 	s.uninstallGuard = f
 }
+
+// SetIsolationAllowIPs sets the addresses that stay reachable while isolated.
+// Entries are single IPv4 addresses or CIDR blocks; see ParseAllowIPs.
+func (s *Server) SetIsolationAllowIPs(ips []string) { s.isolationAllowIPs = ips }
 
 // gracefulStopTimeout bounds how long a shutdown waits for in-flight RPCs to drain
 // before forcing a stop, so a stuck stream can't block the whole shutdown past the
@@ -317,7 +332,7 @@ func (s *Server) EventStream(stream v1.IngestionService_EventStreamServer) error
 			cmds, err := s.commander.Dequeue(agentID)
 			if err == nil {
 				for _, cmd := range cmds {
-					protoCmd := commandToProto(cmd)
+					protoCmd := commandToProto(cmd, s.isolationAllowIPs)
 					if protoCmd == nil {
 						continue
 					}
@@ -897,7 +912,9 @@ func (s *Server) publishEvent(topic string, data []byte, msgID string) {
 // プロセス終了コマンド**がそのまま端末に届く。quarantine_file も同様に
 // 空パスで飛ぶ。呼び出し側 (Dequeue のループ) は既に nil を読み飛ばすので、
 // 送らないのが安全側。
-func commandToProto(cmd *Command) *v1.ServerCommand {
+// allowIPs は隔離コマンドにだけ載る。空なら従来どおり EDR サーバとループバック
+// だけが残る。
+func commandToProto(cmd *Command, allowIPs []string) *v1.ServerCommand {
 	sc := &v1.ServerCommand{CommandId: cmd.ID}
 
 	switch cmd.Type {
@@ -912,7 +929,11 @@ func commandToProto(cmd *Command) *v1.ServerCommand {
 			return nil
 		}
 		sc.Command = &v1.ServerCommand_Isolate{
-			Isolate: &v1.IsolateCommand{Reason: p.Reason, AlertId: p.AlertID},
+			Isolate: &v1.IsolateCommand{
+				Reason:   p.Reason,
+				AlertId:  p.AlertID,
+				AllowIps: allowIPs,
+			},
 		}
 
 	case "unisolate":

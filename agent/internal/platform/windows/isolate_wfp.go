@@ -163,6 +163,50 @@ func uint32ToIPStr(n uint32) string {
 
 type ipv4Range struct{ start, end uint32 }
 
+// allowedRange turns one entry of the isolation allow-list into the IPv4 range
+// that must stay reachable. Accepts a single address ("10.0.0.5") or CIDR
+// notation ("10.0.0.0/24").
+//
+// **CIDR は書けるのに効かない状態が続いていました。** proto の allow_ips は
+// "additional IPs to allow (override)" と書かれているだけで形式を縛っておらず、
+// ここは net.ParseIP しか呼んでいなかったので、CIDR は nil になって
+// `continue` で消えていました。エラーもログも出ないため、除外したはずの
+// 管理セグメントが遮断されても、隔離を解くまで分かりません。
+//
+// parseCIDR はこの経路のために置かれたまま、一度も呼ばれていませんでした
+// （staticcheck U1000。GOOS=windows は Linux の CI が解析しないので、
+// Windows 機でのローカル実行が唯一の判定手段です）。
+func allowedRange(entry string) (ipv4Range, error) {
+	if strings.Contains(entry, "/") {
+		ipnet, err := parseCIDR(entry)
+		if err != nil {
+			return ipv4Range{}, err
+		}
+		base := ipnet.IP.To4()
+		mask := net.IP(ipnet.Mask).To4()
+		if base == nil || mask == nil {
+			// IPv6 は netsh の remoteip レンジ計算（uint32）に載らない。
+			// 隔離は IPv4 のみを対象にしているので、ここで落とす。
+			return ipv4Range{}, fmt.Errorf("IPv4 の CIDR ではありません: %s", entry)
+		}
+		start := ipToUint32(base)
+		// ホスト部を全て 1 にした値が範囲の終端。
+		end := start | ^binary.BigEndian.Uint32(mask)
+		return ipv4Range{start, end}, nil
+	}
+
+	ip := net.ParseIP(entry)
+	if ip == nil {
+		return ipv4Range{}, fmt.Errorf("IP アドレスとして解釈できません: %s", entry)
+	}
+	v4 := ip.To4()
+	if v4 == nil {
+		return ipv4Range{}, fmt.Errorf("IPv4 アドレスではありません: %s", entry)
+	}
+	n := ipToUint32(v4)
+	return ipv4Range{n, n}, nil
+}
+
 // computeBlockRanges calculates IPv4 ranges to BLOCK, covering all addresses
 // except loopback (127.0.0.0/8) and the specified allowed IPs.
 // Returns ranges in "a.b.c.d-e.f.g.h" or "a.b.c.d" format for netsh remoteip.
@@ -172,17 +216,21 @@ func computeBlockRanges(allowedIPs []string) []string {
 		{ipToUint32(net.ParseIP("127.0.0.0")), ipToUint32(net.ParseIP("127.255.255.255"))},
 	}
 
-	for _, ipStr := range allowedIPs {
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
+	for _, entry := range allowedIPs {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
 			continue
 		}
-		v4 := ip.To4()
-		if v4 == nil {
+		r, err := allowedRange(entry)
+		if err != nil {
+			// **黙って捨てない。** 捨てられた項目は「除外したはずのセグメントが
+			// 遮断される」として現れ、隔離を解くまで気づけない。ここで止めると
+			// 隔離そのものが実行されなくなるので、続行はするが必ず記録する。
+			slog.Error("隔離の許可リストに解釈できない項目があります。この項目は許可されません",
+				"entry", entry, "error", err)
 			continue
 		}
-		n := ipToUint32(v4)
-		excluded = append(excluded, ipv4Range{n, n})
+		excluded = append(excluded, r)
 	}
 
 	// Sort by start address

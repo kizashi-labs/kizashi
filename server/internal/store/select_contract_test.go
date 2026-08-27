@@ -193,8 +193,6 @@ var environmentDependentSelects = map[string]string{
 // `tenants`. Migration 380 removed the table, the package and the routes.
 var knownBrokenSelects = map[string]string{
 	// ── tables no migration creates, or that were consolidated away ──────────
-	"internal/api/handlers/risk_scoring_handler.go: [42P01] relation \"risk_score_history\" does not exist": "" +
-		"どのマイグレーションも作成しません。リスクスコアの推移グラフが空になります",
 
 	// ── columns whose data does not exist anywhere, under any name ───────────
 	// These three are not renames in disguise. Each was checked against the

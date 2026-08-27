@@ -33,15 +33,21 @@ const (
 )
 
 // Windows IP Helper API constants
+//
+// **UDP は列挙していません。** GetExtendedUdpTable の proc と
+// udpTableOwnerPID の定数は宣言だけされていて、呼び出す側が一度も書かれて
+// いませんでした（staticcheck U1000）。実装が別へ移ったのではなく、
+// 作られなかったものです。宣言だけ残すと「対応済み」に見えるので外します。
+//
+// Linux 側は /proc/net/udp と /proc/net/udp6 を読んでいるため、network イベントの
+// UDP 被覆は **OS で非対称**です。追跡は docs/debt/P4.md の P4-13。
 var (
 	modiphlpapi             = windows.NewLazySystemDLL("iphlpapi.dll")
 	procGetExtendedTcpTable = modiphlpapi.NewProc("GetExtendedTcpTable")
-	procGetExtendedUdpTable = modiphlpapi.NewProc("GetExtendedUdpTable")
 )
 
 const (
 	tcpTableOwnerPIDConnections = 4
-	udpTableOwnerPID            = 1
 	afInet                      = 2
 )
 

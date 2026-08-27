@@ -80,7 +80,9 @@ var knownUnresolvableStatements = map[string]string{
 		"遡及 IOC ハント。照合する raw_data のキーを呼び出し側が選びます",
 	"internal/store/alerts.go: UPDATE alerts SET %s WHERE id = $1": "" +
 		"部分更新。変更されたフィールドだけを SET に並べます",
-	"internal/store/audit.go: SELECT id, timestamp, COALESCE(user_id,''), COALESCE(user_email,''), action, COALESCE(resource_id,''), COALESCE(ip_address,''), status_code, COALESCE(details,'{}') FROM audit_logs %s ORDER BY timestamp DESC LIMIT $%d OFFSET $%d": "" +
+	// #865 で `LEFT JOIN users` が入った（user_email は書き込み時に埋まらないので
+	// 読み出し時に引く）。**キーは実文なので、クエリを変えたらここも変える。**
+	"internal/store/audit.go: SELECT a.id, a.timestamp, COALESCE(a.user_id,''), COALESCE(NULLIF(a.user_email,''), u.email, ''), a.action, COALESCE(a.resource_id,''), COALESCE(a.ip_address,''), a.status_code, COALESCE(a.details,'{}') FROM audit_logs a LEFT JOIN users u O…": "" +
 		"監査ログの一覧。WHERE を要求のフィルタから組み立てます",
 	"internal/store/auto_response_store.go: UPDATE auto_response_executions SET status = $2, result_msg = $3%s WHERE id = $1": "" +
 		"部分更新。完了時刻を条件付きで SET に足します",

@@ -249,3 +249,66 @@ func (s *Server) registerThing(pub, adm *gin.RouterGroup) {
 		}
 	}
 }
+
+// 登録関数が、**あとから連結されるファイル**で定義されたグループを実引数に
+// 取る形を解決できること。
+//
+// readAPIPackage の連結順は router.go を先頭にした名前順でしかない。1 周だけの
+// 走査では、実引数が後続ファイルで定義されていると未定義に見えて解決に失敗する。
+//
+// 実測（2026-08-27）: routes_commercial.go の registerCommercialRuleRoutes は
+// routes_noncore.go の `rules := protected.Group("/rules")` を受け取るが、
+// commercial < noncore の名前順で先に走査されるため POST /rules/ai-generate が
+// 抽出できず、openapi-sync が中断していた（＝OpenAPI のゲートが丸ごと死ぬ）。
+//
+// 隣の registerCommercialAlertRoutes(alerts) が無事だったのは alerts が
+// router.go で定義されているからにすぎない。**切り出し先のファイル名で
+// 通ったり落ちたりする**状態を関門とは呼べないので、前方参照を解決する。
+//
+// 下の src は後方参照（先に定義）と前方参照（あとで定義）を 1 本ずつ含む。
+// 1 周走査では前方参照の側だけが unresolved として残る。
+func TestForwardReferencedGroupsResolve(t *testing.T) {
+	src := `
+func (s *Server) SetupRouter() {
+	api := r.Group("/api/v1")
+	alerts := api.Group("/alerts")
+	s.registerCommercialAlertRoutes(alerts)
+}
+
+func (s *Server) registerCommercialAlertRoutes(alerts *gin.RouterGroup) {
+	alerts.POST("/:id/analyze", s.handlers.ai.ReanalyzeAlert)
+}
+
+func (s *Server) registerCommercialRuleRoutes(rules *gin.RouterGroup) {
+	rules.POST("/ai-generate", s.handlers.ai.GenerateRule)
+}
+
+func (s *Server) setupLater() {
+	api2 := r.Group("/api/v1")
+	rules := api2.Group("/rules")
+	s.registerCommercialRuleRoutes(rules)
+}
+`
+	if _, un1, _ := collectOnce(src, nil); len(un1) == 0 {
+		t.Fatal("1 周走査で前方参照が解決できてしまいました。" +
+			"この検査が守っている失敗を再現できていないので、src を見直してください")
+	}
+
+	routes, unresolved := CollectRoutesWithDiagnostics(src)
+	if len(unresolved) > 0 {
+		t.Fatalf("前方参照のグループを解決できていません: %v", unresolved)
+	}
+
+	got := map[string]bool{}
+	for _, r := range routes {
+		got[r.Method+" "+r.Path] = true
+	}
+	for _, want := range []string{
+		"POST /api/v1/alerts/{id}/analyze", // 後方参照（従来から通っていた側）
+		"POST /api/v1/rules/ai-generate",   // 前方参照（漏れていた側）
+	} {
+		if !got[want] {
+			t.Errorf("%q が抽出されていません。抽出: %v", want, got)
+		}
+	}
+}

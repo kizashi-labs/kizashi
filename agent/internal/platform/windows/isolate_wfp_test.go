@@ -3,6 +3,7 @@
 package windows
 
 import (
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -258,5 +259,119 @@ func TestReconcileConcurrentWithReaders(t *testing.T) {
 
 	if !m.IsIsolated() {
 		t.Fatal("reconcile must have adopted the rules once it completed")
+	}
+}
+
+// blocked reports whether ip falls inside any of the computed block ranges.
+// ブロック範囲は "a-b" か単一アドレスの文字列で返るので、両方を解く。
+func blocked(t *testing.T, ranges []string, ip string) bool {
+	t.Helper()
+	n := ipToUint32(net.ParseIP(ip))
+	for _, r := range ranges {
+		lo, hi, found := strings.Cut(r, "-")
+		if !found {
+			hi = lo
+		}
+		s, e := ipToUint32(net.ParseIP(lo)), ipToUint32(net.ParseIP(hi))
+		if n >= s && n <= e {
+			return true
+		}
+	}
+	return false
+}
+
+// 許可リストに CIDR を書いたとき、その範囲全体が到達可能なまま残ること。
+//
+// proto の allow_ips は形式を縛っていないが、ここは net.ParseIP しか呼んで
+// いなかったため CIDR は nil になり `continue` で消えていた。エラーもログも
+// 出ないので、除外したはずの管理セグメントが遮断されても隔離を解くまで
+// 分からない。**書けるのに効かない**のが最悪の形だった。
+func TestComputeBlockRanges_CIDRIsHonoured(t *testing.T) {
+	ranges := computeBlockRanges([]string{"10.0.0.0/24"})
+
+	for _, ip := range []string{"10.0.0.0", "10.0.0.1", "10.0.0.128", "10.0.0.255"} {
+		if blocked(t, ranges, ip) {
+			t.Errorf("%s は 10.0.0.0/24 の中なのでブロックされてはいけません: %v", ip, ranges)
+		}
+	}
+	// 範囲の外側は隣接していてもブロックされること（境界の取り違えを見る）。
+	for _, ip := range []string{"9.255.255.255", "10.0.1.0", "10.0.1.1"} {
+		if !blocked(t, ranges, ip) {
+			t.Errorf("%s は 10.0.0.0/24 の外なのでブロックされるべきです: %v", ip, ranges)
+		}
+	}
+}
+
+// 単一アドレスの指定が CIDR 対応で壊れていないこと。
+func TestComputeBlockRanges_SingleIPStillHonoured(t *testing.T) {
+	ranges := computeBlockRanges([]string{"10.0.0.5"})
+	if blocked(t, ranges, "10.0.0.5") {
+		t.Errorf("許可した単一アドレスがブロックされています: %v", ranges)
+	}
+	if !blocked(t, ranges, "10.0.0.6") {
+		t.Errorf("許可していない隣接アドレスが通っています: %v", ranges)
+	}
+}
+
+// /32 と裸のアドレスが同じ結果になること。
+func TestComputeBlockRanges_Slash32EqualsBareAddress(t *testing.T) {
+	bare := computeBlockRanges([]string{"8.8.8.8"})
+	cidr := computeBlockRanges([]string{"8.8.8.8/32"})
+	if strings.Join(bare, ",") != strings.Join(cidr, ",") {
+		t.Errorf("8.8.8.8 と 8.8.8.8/32 の結果が違います:\n bare=%v\n cidr=%v", bare, cidr)
+	}
+}
+
+// 解釈できない項目は「許可された」ことにならないこと。
+//
+// 続行はする（ここで止めると隔離そのものが実行されない）が、その項目を
+// 通してはいけない。ログには出す。
+func TestComputeBlockRanges_UnparseableEntryIsNotAllowed(t *testing.T) {
+	ranges := computeBlockRanges([]string{"not-an-ip", "10.0.0.0/33", "10.0.0.7"})
+	if len(ranges) == 0 {
+		t.Fatal("解釈できない項目があっても隔離範囲は返るべきです")
+	}
+	if !blocked(t, ranges, "10.0.0.0") {
+		t.Error("解釈できない CIDR が許可として通っています")
+	}
+	if blocked(t, ranges, "10.0.0.7") {
+		t.Error("同じリスト内の正しい項目まで落ちています")
+	}
+}
+
+// allowedRange 自体の判定。CIDR・単一・不正・IPv6 を見る。
+func TestAllowedRange(t *testing.T) {
+	cases := []struct {
+		in      string
+		wantErr bool
+		lo, hi  string
+	}{
+		{in: "10.0.0.0/24", lo: "10.0.0.0", hi: "10.0.0.255"},
+		{in: "172.16.0.0/12", lo: "172.16.0.0", hi: "172.31.255.255"},
+		{in: "192.168.1.7/32", lo: "192.168.1.7", hi: "192.168.1.7"},
+		{in: "0.0.0.0/0", lo: "0.0.0.0", hi: "255.255.255.255"},
+		{in: "10.0.0.5", lo: "10.0.0.5", hi: "10.0.0.5"},
+		{in: "not-an-ip", wantErr: true},
+		{in: "10.0.0.0/33", wantErr: true},
+		{in: "2001:db8::/32", wantErr: true}, // IPv4 のみを対象にしている
+		{in: "::1", wantErr: true},
+	}
+	for _, c := range cases {
+		got, err := allowedRange(c.in)
+		if c.wantErr {
+			if err == nil {
+				t.Errorf("%q はエラーになるべきです（got %v）", c.in, got)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("%q: %v", c.in, err)
+			continue
+		}
+		wantLo, wantHi := ipToUint32(net.ParseIP(c.lo)), ipToUint32(net.ParseIP(c.hi))
+		if got.start != wantLo || got.end != wantHi {
+			t.Errorf("%q: %s-%s を期待、得たのは %s-%s",
+				c.in, c.lo, c.hi, uint32ToIPStr(got.start), uint32ToIPStr(got.end))
+		}
 	}
 }

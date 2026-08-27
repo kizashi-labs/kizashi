@@ -197,10 +197,6 @@ var knownDeadRawDataKeys = map[string]string{
 	// them, but only sometimes and differently per runtime, so deriving them
 	// from it would be a guess that is right often enough to be trusted and
 	// wrong often enough to mislead.
-	"process.container_name": "コンテナ名はランタイムAPIが必要です " +
-		"(cgroup パスからは確実には取れません)。" +
-		"コンテナランタイム脅威の一覧で名前列が空になります",
-	"process.image_name": "同上。イメージ名も同じくランタイムAPI経由でしか取れません",
 }
 
 // The rest of this list has been worked off, and how each one went is worth

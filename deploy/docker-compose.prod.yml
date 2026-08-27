@@ -170,6 +170,9 @@ services:
       - .env.prod
     environment:
       GRPC_PORT: "9091"
+      # 隔離中も到達させるアドレス（IPv4 の単一アドレスまたは CIDR、カンマ区切り）。
+      # 隔離コマンドを組み立てるのは ingestion なので、このサービスに配らないと効かない。
+      ISOLATION_ALLOW_IPS: ${ISOLATION_ALLOW_IPS:-}
       TLS_ENABLED: "false"
     volumes:
       - ../certs:/certs:ro
