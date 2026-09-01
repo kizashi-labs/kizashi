@@ -4,7 +4,7 @@
 #   docker build -f server/Dockerfile --target api .
 # Produces two targets: 'api' and 'ingestion'
 
-FROM golang:1.26.6-alpine AS builder
+FROM golang:1.27.0-alpine AS builder
 WORKDIR /build
 
 # GIT_COMMIT is passed via --build-arg or docker-compose args.
@@ -53,7 +53,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o /bin/detection-server ./cmd/detection/
 
 # ── Agent builder ─────────────────────────────
-FROM golang:1.26.6-alpine AS agent-builder
+FROM golang:1.27.0-alpine AS agent-builder
 WORKDIR /build
 
 # VERSION mirrors the builder stage so the agent reports an accurate version
