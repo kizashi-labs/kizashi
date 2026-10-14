@@ -155,7 +155,7 @@ jobs:
         working-directory: packaging/nfpm/out
         run: for f in *.deb *.rpm; do sha256sum "$f" > "$f.sha256"; done
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: linux-packages-${{ matrix.arch }}
           path: packaging/nfpm/out/
@@ -275,7 +275,7 @@ jobs:
         working-directory: packaging/windows
         run: for f in *.msi; do sha256sum "$f" > "$f.sha256"; done
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: windows-msi
           path: |
@@ -413,7 +413,7 @@ jobs:
         working-directory: packaging/macos
         run: for f in *.pkg; do shasum -a 256 "$f" > "$f.sha256"; done
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: macos-pkg-${{ matrix.arch }}
           path: |
@@ -428,7 +428,7 @@ jobs:
     needs: [linux-packages, windows-msi, macos-pkg]
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: packages/
           merge-multiple: true
@@ -436,7 +436,7 @@ jobs:
       - name: List
         run: ls -la packages/
 
-      - uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: packages/*
           fail_on_unmatched_files: true
